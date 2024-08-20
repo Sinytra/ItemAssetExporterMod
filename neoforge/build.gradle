@@ -21,6 +21,7 @@ neoForge {
         }
         client {
             client()
+            systemProperty('item_asset_export.render.namespaces', 'minecraft')
         }
         data {
             data()
