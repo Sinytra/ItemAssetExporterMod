@@ -26,6 +26,8 @@ loom {
             setConfigName('Fabric Client')
             ideConfigGenerated(true)
             runDir('runs/client')
+
+            property('item_asset_export.render.namespaces', 'minecraft')
         }
         server {
             server()
