@@ -1,6 +1,6 @@
-package com.example.examplemod.platform;
+package org.sinytra.assetexport.platform;
 
-import com.example.examplemod.platform.services.IPlatformHelper;
+import org.sinytra.assetexport.platform.services.IPlatformHelper;
 import net.neoforged.fml.loading.FMLPaths;
 
 import java.nio.file.Path;

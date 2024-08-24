@@ -8,30 +8,21 @@
         "${mod_author}"
     ],
     "contact": {
-        "homepage": "https://fabricmc.net/",
-        "sources": "https://github.com/FabricMC/fabric-example-mod"
+        "homepage": "https://github.com/Sinytra/ItemAssetExporterMod",
+        "sources": "https://github.com/Sinytra/ItemAssetExporterMod"
     },
     "license": "${license}",
     "icon": "${mod_id}.png",
     "environment": "*",
-    "entrypoints": {
-        "main": [
-            "com.example.examplemod.ExampleMod"
-        ]
-    },
     "mixins": [
         "${mod_id}.mixins.json",
-        "${mod_id}.render.mixins.json",
-        "${mod_id}.fabric.mixins.json"
+        "${mod_id}.render.mixins.json"
     ],
     "depends": {
         "fabricloader": ">=${fabric_loader_version}",
         "fabric-api": "*",
         "minecraft": "${minecraft_version}",
         "java": ">=${java_version}"
-    },
-    "suggests": {
-        "another-mod": "*"
     }
 }
   

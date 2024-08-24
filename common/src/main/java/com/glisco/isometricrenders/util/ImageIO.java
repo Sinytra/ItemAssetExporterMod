@@ -23,7 +23,7 @@
  */
 package com.glisco.isometricrenders.util;
 
-import com.example.examplemod.Constants;
+import org.sinytra.assetexport.Constants;
 import com.mojang.blaze3d.platform.NativeImage;
 
 import java.io.File;

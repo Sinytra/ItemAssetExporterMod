@@ -23,7 +23,7 @@
  */
 package com.glisco.isometricrenders.render;
 
-import com.example.examplemod.render.ForwardingBakedModel;
+import org.sinytra.assetexport.render.ForwardingBakedModel;
 import com.glisco.isometricrenders.property.DefaultPropertyBundle;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;

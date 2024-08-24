@@ -1,7 +1,7 @@
-package com.example.examplemod.platform;
+package org.sinytra.assetexport.platform;
 
-import com.example.examplemod.Constants;
-import com.example.examplemod.platform.services.IPlatformHelper;
+import org.sinytra.assetexport.Constants;
+import org.sinytra.assetexport.platform.services.IPlatformHelper;
 
 import java.util.ServiceLoader;
 

@@ -1,6 +1,6 @@
-package com.example.examplemod.platform;
+package org.sinytra.assetexport.platform;
 
-import com.example.examplemod.platform.services.IPlatformHelper;
+import org.sinytra.assetexport.platform.services.IPlatformHelper;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.nio.file.Path;

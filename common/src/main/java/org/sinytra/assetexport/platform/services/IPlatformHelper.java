@@ -1,4 +1,4 @@
-package com.example.examplemod.platform.services;
+package org.sinytra.assetexport.platform.services;
 
 import java.nio.file.Path;
 

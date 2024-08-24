@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.examplemod.render;
+package org.sinytra.assetexport.render;
 
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrides;

@@ -1,6 +1,6 @@
-package com.example.examplemod;
+package org.sinytra.assetexport;
 
-import com.example.examplemod.platform.Services;
+import org.sinytra.assetexport.platform.Services;
 import com.glisco.isometricrenders.render.ItemRenderable;
 import com.glisco.isometricrenders.render.RenderableDispatcher;
 import com.glisco.isometricrenders.util.ImageIO;
