@@ -22,6 +22,7 @@ neoForge {
         client {
             client()
             systemProperty('item_asset_export.render.namespaces', 'minecraft')
+            systemProperty('item_asset_export.render.output', file('run/.assets/item').absolutePath)
         }
         data {
             data()

@@ -1,6 +1,5 @@
 package org.sinytra.assetexport;
 
-import org.sinytra.assetexport.platform.Services;
 import com.glisco.isometricrenders.render.ItemRenderable;
 import com.glisco.isometricrenders.render.RenderableDispatcher;
 import com.glisco.isometricrenders.util.ImageIO;
@@ -12,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.sinytra.assetexport.platform.Services;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 public class CommonClass {
     public static final String RENDER_PROPERTY = "item_asset_export.render.namespaces";
+    public static final String OUTPUT_PROPERTY = "item_asset_export.render.output";
     private static final int RESOLUTION = 128;
     private static final Set<Item> IGNORE_DEPTH = Set.of(Items.SPYGLASS, Items.TRIDENT);
 
@@ -31,11 +32,13 @@ public class CommonClass {
         if (shouldRender()) {
             List<Pair<ResourceLocation, Item>> renderable = getRenderableItems();
             if (!renderable.isEmpty()) {
+                String outputProperty = System.getProperty(OUTPUT_PROPERTY);
+                Path path = outputProperty != null ? Path.of(outputProperty) : Services.PLATFORM.getGameDirectory();
 
 //                Minecraft.getInstance().setScreen(new RenderingScreen(Component.literal("Rendering Items"), counter, renderable.size()));
 
                 Constants.LOG.info("Rendering {} items", renderable.size());
-                renderItems(renderable).join();
+                renderItems(renderable, path).join();
             }
 
             Constants.LOG.info("Render complete, shutting down");
@@ -66,15 +69,15 @@ public class CommonClass {
         return list;
     }
 
-    private static CompletableFuture<?> renderItems(List<Pair<ResourceLocation, Item>> renderable) {
+    private static CompletableFuture<?> renderItems(List<Pair<ResourceLocation, Item>> renderable, Path output) {
         List<CompletableFuture<?>> list = renderable.stream()
-            .<CompletableFuture<?>>map(p -> renderItem(p.getFirst(), p.getSecond()))
+            .<CompletableFuture<?>>map(p -> renderItem(p.getFirst(), p.getSecond(), output))
             .toList();
 
         return CompletableFuture.allOf(list.toArray(CompletableFuture[]::new));
     }
 
-    private static CompletableFuture<?> renderItem(ResourceLocation name, Item item) {
+    private static CompletableFuture<?> renderItem(ResourceLocation name, Item item, Path output) {
         return Minecraft.getInstance().submit(() -> {
                 ItemStack stack = new ItemStack(item);
                 ItemRenderable renderable = new ItemRenderable(stack);
@@ -82,16 +85,15 @@ public class CommonClass {
                 boolean depth = !IGNORE_DEPTH.contains(item) && Minecraft.getInstance().getItemRenderer().getModel(stack, null, null, 0).isGui3d();
                 setupItem(renderable, depth);
 
-                return scheduleRender(renderable, name.getNamespace(), name.getPath());
+                return scheduleRender(renderable, name.getNamespace(), name.getPath(), output);
             })
             .thenCompose(Function.identity());
     }
 
-    private static CompletableFuture<File> scheduleRender(ItemRenderable renderable, String namespace, String fileName) {
-        Path gameDir = Services.PLATFORM.getGameDirectory();
+    private static CompletableFuture<File> scheduleRender(ItemRenderable renderable, String namespace, String fileName, Path output) {
         return ImageIO.save(
             RenderableDispatcher.drawIntoImage(renderable, 0, RESOLUTION),
-            gameDir.resolve("renders/" + namespace + "/" + fileName + ".png").toFile()
+            output.resolve(namespace + "/" + fileName + ".png").toFile()
         );
     }
 
