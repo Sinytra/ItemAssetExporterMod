@@ -1,12 +1,13 @@
 plugins {
     id 'multiloader-common'
+    id 'maven-publish'
 }
 
 configurations {
-    commonJava{
+    commonJava {
         canBeResolved = true
     }
-    commonResources{
+    commonResources {
         canBeResolved = true
     }
 }
@@ -41,4 +42,23 @@ tasks.named('sourcesJar', Jar) {
     from(configurations.commonJava)
     dependsOn(configurations.commonResources)
     from(configurations.commonResources)
+}
+
+publishing {
+    repositories {
+        def env = System.getenv()
+
+        if (env["MAVEN_URL"] != null) {
+            maven {
+                url = env["MAVEN_URL"]
+
+                if (env["MAVEN_USERNAME"] != null) {
+                    credentials {
+                        username = env["MAVEN_USERNAME"]
+                        password = env["MAVEN_PASSWORD"]
+                    }
+                }
+            }
+        }
+    }
 }

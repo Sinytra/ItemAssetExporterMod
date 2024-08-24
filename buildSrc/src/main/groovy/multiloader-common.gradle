@@ -4,8 +4,10 @@ plugins {
 }
 
 base {
-    archivesName = "${mod_id}-${project.name}-${minecraft_version}"
+    archivesName = "${publish_name}-${project.name}"
 }
+
+version = "${version}+${minecraft_version}"
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(java_version)
@@ -113,11 +115,6 @@ publishing {
         register('mavenJava', MavenPublication) {
             artifactId base.archivesName.get()
             from components.java
-        }
-    }
-    repositories {
-        maven {
-            url System.getenv('local_maven_url')
         }
     }
 }
