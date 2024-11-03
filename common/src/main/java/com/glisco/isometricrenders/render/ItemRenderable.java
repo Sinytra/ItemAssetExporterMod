@@ -90,7 +90,7 @@ public class ItemRenderable extends DefaultRenderable<DefaultPropertyBundle> {
     }
 
     public Stream<TextureAtlasSprite> getSprites() {
-        var quads = getModel().getQuads(null, null, RandomSource.create(1L));
+        var quads = getModel(stack).getQuads(null, null, RandomSource.create(1L));
         return quads.stream().map(BakedQuad::getSprite).distinct();
     }
 
@@ -111,17 +111,17 @@ public class ItemRenderable extends DefaultRenderable<DefaultPropertyBundle> {
 
     @Override
     public void prepare() {
-        currentModel = getModel();
+        currentModel = getModel(this.stack);
     }
 
-    private BakedModel getModel() {
+    public static BakedModel getModel(ItemStack stack) {
         var itemRenderer = Minecraft.getInstance().getItemRenderer();
-        if (this.stack.is(Items.TRIDENT)) {
+        if (stack.is(Items.TRIDENT)) {
             return itemRenderer.getItemModelShaper().getModelManager().getModel(ModelResourceLocation.vanilla("trident", "inventory"));
-        } else if (this.stack.is(Items.SPYGLASS)) {
+        } else if (stack.is(Items.SPYGLASS)) {
             return itemRenderer.getItemModelShaper().getModelManager().getModel(ModelResourceLocation.vanilla("spyglass", "inventory"));
         } else {
-            return itemRenderer.getModel(this.stack, Minecraft.getInstance().level, null, 0);
+            return itemRenderer.getModel(stack, Minecraft.getInstance().level, null, 0);
         }
     }
 

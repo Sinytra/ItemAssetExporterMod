@@ -1,131 +1,88 @@
 package org.sinytra.assetexport;
 
-import com.glisco.isometricrenders.render.ItemRenderable;
-import com.glisco.isometricrenders.render.RenderableDispatcher;
-import com.glisco.isometricrenders.util.ImageIO;
-import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.util.GsonHelper;
+import org.sinytra.assetexport.dumper.AssetDump;
+import org.sinytra.assetexport.dumper.Identifiable;
+import org.sinytra.assetexport.dumper.IdentifiableSelector;
 import org.sinytra.assetexport.platform.Services;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class CommonClass {
-    public static final String RENDER_PROPERTY = "item_asset_export.render.namespaces";
+    public static final String CONFIG_FILE = "item_asset_export.render.config.file";
     public static final String OUTPUT_PROPERTY = "item_asset_export.render.output";
-    public static final boolean PNGS = getBoolean("item_asset_export.render.outputs.png", true);
-    public static final boolean ANIMATED_GIFS = getBoolean("item_asset_export.render.outputs.gif", false);
-    private static final int RESOLUTION = 128;
-    private static final Set<Item> IGNORE_DEPTH = Set.of(Items.SPYGLASS, Items.TRIDENT);
 
     public static void runRender() {
         if (shouldRender()) {
-            List<Pair<ResourceLocation, Item>> renderable = getRenderableItems();
-            if (!renderable.isEmpty()) {
+            try {
                 String outputProperty = System.getProperty(OUTPUT_PROPERTY);
                 Path path = outputProperty != null ? Path.of(outputProperty) : Services.PLATFORM.getGameDirectory();
 
-//                Minecraft.getInstance().setScreen(new RenderingScreen(Component.literal("Rendering Items"), counter, renderable.size()));
+                var dumps = getDumps();
+                for (int i = 0; i < dumps.size(); i++) {
+                    var dump = dumps.get(i);
+                    Constants.LOG.info("Running dump {} ({} selecting {})", i, dump, dump.selectors().stream()
+                            .map(Object::toString).collect(Collectors.joining(", ")));
 
-                Constants.LOG.info("Rendering {} items", renderable.size());
-                renderItems(renderable, path).join();
+                    runDump(path, dump);
+
+                    Constants.LOG.info("Finished dump {}", i);
+                }
+
+                Constants.LOG.info("Render complete, shutting down");
+                Minecraft.getInstance().stop();
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to read dumps file", e);
             }
-
-            Constants.LOG.info("Render complete, shutting down");
-            Minecraft.getInstance().stop();
         }
     }
 
     public static boolean shouldRender() {
-        return System.getProperty(RENDER_PROPERTY) != null;
+        return System.getProperty(CONFIG_FILE) != null;
     }
 
-    private static List<Pair<ResourceLocation, Item>> getRenderableItems() {
-        Set<String> namespaces = Set.of(System.getProperty(RENDER_PROPERTY).split(","));
-        if (namespaces.isEmpty()) {
-            return List.of();
+    private static List<AssetDump<?>> getDumps() throws IOException {
+        var file = Path.of(System.getProperty(CONFIG_FILE));
+        var dumps = AssetDump.CODEC.listOf()
+                .decode(JsonOps.INSTANCE, GsonHelper.parseArray(Files.readString(file)))
+                .getOrThrow();
+        return dumps.getFirst();
+    }
+
+    private static <T extends Identifiable> void runDump(Path basePath, AssetDump<T> dump) {
+        var selected = new HashSet<T>();
+        var universe = dump.type().getSource();
+        for (IdentifiableSelector selector : dump.selectors()) {
+            selector.select(universe, selected);
         }
 
-        Constants.LOG.info("Rendering items for namespaces {}", namespaces);
+        selected.removeIf(Predicate.not(dump.type()::canDump));
+        if (selected.isEmpty()) return;
 
-        List<Pair<ResourceLocation, Item>> list = new ArrayList<>();
-        for (Map.Entry<ResourceKey<Item>, Item> entry : BuiltInRegistries.ITEM.entrySet()) {
-            ResourceLocation name = entry.getKey().location();
-            if (namespaces.contains(name.getNamespace())) {
-                list.add(Pair.of(name, entry.getValue()));
-            }
-        }
+        Function<ResourceLocation, Path> pathFunction = location -> basePath.resolve(location.getNamespace() + "/" + location.getPath());
 
-        return list;
+        Constants.LOG.info("Dumping {} objects...", selected.size());
+
+        var output = Collections.synchronizedList(new ArrayList<CompletableFuture<File>>());
+        CompletableFuture.allOf(selected.stream().map(s -> Minecraft.getInstance().submit(() ->
+                        dump.type().dump(pathFunction, s, output::add)))
+                .toArray(CompletableFuture[]::new)).join();
+
+        CompletableFuture.allOf(output.toArray(CompletableFuture[]::new)).join();
     }
 
-    private static CompletableFuture<?> renderItems(List<Pair<ResourceLocation, Item>> renderable, Path output) {
-        List<CompletableFuture<?>> list = renderable.stream()
-            .<CompletableFuture<?>>map(p -> renderItem(p.getFirst(), p.getSecond(), output))
-            .toList();
-
-        return CompletableFuture.allOf(list.toArray(CompletableFuture[]::new));
-    }
-
-    private static CompletableFuture<?> renderItem(ResourceLocation name, Item item, Path output) {
-        return Minecraft.getInstance().submit(() -> {
-                ItemStack stack = new ItemStack(item);
-                ItemRenderable renderable = new ItemRenderable(stack);
-
-                boolean depth = !IGNORE_DEPTH.contains(item) && Minecraft.getInstance().getItemRenderer().getModel(stack, null, null, 0).isGui3d();
-                setupItem(renderable, depth);
-
-                return scheduleRender(renderable, name.getNamespace(), name.getPath(), output);
-            })
-            .thenCompose(Function.identity());
-    }
-
-    private static CompletableFuture<?> scheduleRender(ItemRenderable renderable, String namespace, String fileName, Path output) {
-        CompletableFuture<?> cf = null;
-        if (PNGS) {
-            cf = ImageIO.save(
-                    RenderableDispatcher.drawIntoImage(renderable, 0, RESOLUTION),
-                    output.resolve(namespace + "/" + fileName + ".png").toFile()
-            );
-        }
-
-        if (ANIMATED_GIFS) {
-            var frames = renderable.getAnimationTicks();
-            if (frames > 1) {
-                var other = ImageIO.save(
-                        RenderableDispatcher.drawFramed(renderable, frames, renderable.getSprites().toList(), RESOLUTION),
-                        output.resolve(namespace + "/" + fileName + ".gif").toFile()
-                );
-                if (cf != null) {
-                    cf = CompletableFuture.allOf(cf, other);
-                } else {
-                    cf = other;
-                }
-            }
-        }
-
-        return cf == null ? CompletableFuture.completedFuture(null) : cf;
-    }
-
-    private static void setupItem(ItemRenderable renderable, boolean depth) {
-        renderable.properties().slant.set(0);
-        renderable.properties().rotation.set(depth ? 272 : 0);
-        renderable.properties().lightAngle.set(-45);
-        renderable.properties().scale.set(98);
-    }
-
-    private static boolean getBoolean(String name, boolean def) {
-        return Boolean.parseBoolean(System.getProperty(name, String.valueOf(def)));
-    }
 }

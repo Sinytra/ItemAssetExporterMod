@@ -10,6 +10,10 @@ dependencies {
     }
     modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+
+    modCompileOnlyApi("mezz.jei:jei-${minecraft_version}-fabric-api:${jei_version}")
+    // at runtime, use the full JEI jar for Fabric
+    modRuntimeOnly("mezz.jei:jei-${minecraft_version}-fabric:${jei_version}")
 }
 
 loom {
@@ -24,7 +28,7 @@ loom {
             ideConfigGenerated(true)
             runDir('runs/client')
 
-            property('item_asset_export.render.namespaces', 'minecraft')
+            property('item_asset_export.render.config.file', file('../dump.json').absolutePath)
         }
         server {
             server()

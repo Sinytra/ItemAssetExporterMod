@@ -1,0 +1,15 @@
+[
+  {
+    "dumper": {
+      "type": "item",
+      "format": "png",
+      "resolution": 128
+    },
+    "selectors": [
+      {
+        "type": "with_namespace",
+        "namespace": "minecraft"
+      }
+    ]
+  }
+]

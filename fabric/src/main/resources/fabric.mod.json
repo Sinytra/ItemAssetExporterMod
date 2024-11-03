@@ -24,5 +24,11 @@
         "minecraft": ">=${minecraft_version}",
         "java": ">=${java_version}"
     },
-    "accessWidener": "${mod_id}.accesswidener"
+    "accessWidener": "${mod_id}.accesswidener",
+    "custom": {
+        "loom:injected_interfaces": {
+            "net/minecraft/class_1792": ["org/sinytra/assetexport/dumper/Identifiable"],
+            "net/minecraft/class_8786": ["org/sinytra/assetexport/dumper/Identifiable"]
+        }
+    }
 }
