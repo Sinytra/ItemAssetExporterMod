@@ -13,7 +13,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.sinytra.assetexport.platform.Services;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +24,8 @@ import java.util.function.Function;
 public class CommonClass {
     public static final String RENDER_PROPERTY = "item_asset_export.render.namespaces";
     public static final String OUTPUT_PROPERTY = "item_asset_export.render.output";
+    public static final boolean PNGS = getBoolean("item_asset_export.render.outputs.png", true);
+    public static final boolean ANIMATED_GIFS = getBoolean("item_asset_export.render.outputs.gif", false);
     private static final int RESOLUTION = 128;
     private static final Set<Item> IGNORE_DEPTH = Set.of(Items.SPYGLASS, Items.TRIDENT);
 
@@ -90,11 +91,31 @@ public class CommonClass {
             .thenCompose(Function.identity());
     }
 
-    private static CompletableFuture<File> scheduleRender(ItemRenderable renderable, String namespace, String fileName, Path output) {
-        return ImageIO.save(
-            RenderableDispatcher.drawIntoImage(renderable, 0, RESOLUTION),
-            output.resolve(namespace + "/" + fileName + ".png").toFile()
-        );
+    private static CompletableFuture<?> scheduleRender(ItemRenderable renderable, String namespace, String fileName, Path output) {
+        CompletableFuture<?> cf = null;
+        if (PNGS) {
+            cf = ImageIO.save(
+                    RenderableDispatcher.drawIntoImage(renderable, 0, RESOLUTION),
+                    output.resolve(namespace + "/" + fileName + ".png").toFile()
+            );
+        }
+
+        if (ANIMATED_GIFS) {
+            var frames = renderable.getAnimationTicks();
+            if (frames > 1) {
+                var other = ImageIO.save(
+                        RenderableDispatcher.drawFramed(renderable, frames, renderable.getSprites().toList(), RESOLUTION),
+                        output.resolve(namespace + "/" + fileName + ".gif").toFile()
+                );
+                if (cf != null) {
+                    cf = CompletableFuture.allOf(cf, other);
+                } else {
+                    cf = other;
+                }
+            }
+        }
+
+        return cf == null ? CompletableFuture.completedFuture(null) : cf;
     }
 
     private static void setupItem(ItemRenderable renderable, boolean depth) {
@@ -102,5 +123,9 @@ public class CommonClass {
         renderable.properties().rotation.set(depth ? 272 : 0);
         renderable.properties().lightAngle.set(-45);
         renderable.properties().scale.set(98);
+    }
+
+    private static boolean getBoolean(String name, boolean def) {
+        return Boolean.parseBoolean(System.getProperty(name, String.valueOf(def)));
     }
 }

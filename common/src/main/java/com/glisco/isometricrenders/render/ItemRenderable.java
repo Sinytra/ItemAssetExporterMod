@@ -23,6 +23,13 @@
  */
 package com.glisco.isometricrenders.render;
 
+import com.glisco.isometricrenders.mixin.access.AnimatedTextureAccessor;
+import com.glisco.isometricrenders.mixin.access.SpriteContentsAccessor;
+import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.texture.SpriteContents;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import org.sinytra.assetexport.render.ForwardingBakedModel;
 import com.glisco.isometricrenders.property.DefaultPropertyBundle;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -38,6 +45,9 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.joml.Matrix4fStack;
+
+import java.util.Objects;
+import java.util.stream.Stream;
 
 public class ItemRenderable extends DefaultRenderable<DefaultPropertyBundle> {
 
@@ -71,15 +81,47 @@ public class ItemRenderable extends DefaultRenderable<DefaultPropertyBundle> {
         this.stack = stack;
     }
 
+    public int getAnimationTicks() {
+        return getSprites().map(TextureAtlasSprite::contents).distinct()
+                .map(c -> ((SpriteContentsAccessor) c).iae$getAnimatedTexture())
+                .filter(Objects::nonNull)
+                .mapToInt(t -> ((AnimatedTextureAccessor) t).iae$getFrames().stream().mapToInt(f -> f.time).sum())
+                .reduce(1, ItemRenderable::lcm);
+    }
+
+    public Stream<TextureAtlasSprite> getSprites() {
+        var quads = getModel().getQuads(null, null, RandomSource.create(1L));
+        return quads.stream().map(BakedQuad::getSprite).distinct();
+    }
+
+    private static int lcm(int number1, int number2) {
+        if (number1 == 0 || number2 == 0) {
+            return 0;
+        }
+        int absNumber1 = Math.abs(number1);
+        int absNumber2 = Math.abs(number2);
+        int absHigherNumber = Math.max(absNumber1, absNumber2);
+        int absLowerNumber = Math.min(absNumber1, absNumber2);
+        int lcm = absHigherNumber;
+        while (lcm % absLowerNumber != 0) {
+            lcm += absHigherNumber;
+        }
+        return lcm;
+    }
+
     @Override
     public void prepare() {
+        currentModel = getModel();
+    }
+
+    private BakedModel getModel() {
         var itemRenderer = Minecraft.getInstance().getItemRenderer();
         if (this.stack.is(Items.TRIDENT)) {
-            currentModel = itemRenderer.getItemModelShaper().getModelManager().getModel(ModelResourceLocation.vanilla("trident", "inventory"));
+            return itemRenderer.getItemModelShaper().getModelManager().getModel(ModelResourceLocation.vanilla("trident", "inventory"));
         } else if (this.stack.is(Items.SPYGLASS)) {
-            currentModel = itemRenderer.getItemModelShaper().getModelManager().getModel(ModelResourceLocation.vanilla("spyglass", "inventory"));
+            return itemRenderer.getItemModelShaper().getModelManager().getModel(ModelResourceLocation.vanilla("spyglass", "inventory"));
         } else {
-            currentModel = itemRenderer.getModel(this.stack, Minecraft.getInstance().level, null, 0);
+            return itemRenderer.getModel(this.stack, Minecraft.getInstance().level, null, 0);
         }
     }
 

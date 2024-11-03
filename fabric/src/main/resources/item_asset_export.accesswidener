@@ -1,0 +1,4 @@
+accessWidener v2 named
+accessible class net/minecraft/client/renderer/texture/SpriteContents$FrameInfo
+accessible field net/minecraft/client/renderer/texture/SpriteContents$FrameInfo time I
+accessible class net/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture

@@ -24,6 +24,7 @@
 package com.glisco.isometricrenders.render;
 
 import com.glisco.isometricrenders.mixin.access.FramebufferAccessor;
+import com.glisco.isometricrenders.mixin.access.SpriteContentsAccessor;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -33,10 +34,14 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Vector4f;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class RenderableDispatcher {
@@ -51,7 +56,6 @@ public class RenderableDispatcher {
      * @param tickDelta   The tick delta to use
      */
     public static void drawIntoActiveFramebuffer(Renderable<?> renderable, float aspectRatio, float tickDelta, Consumer<Matrix4fStack> transformer) {
-
         renderable.prepare();
 
         // Prepare model view matrix
@@ -93,6 +97,42 @@ public class RenderableDispatcher {
 
         renderable.cleanUp();
         RenderSystem.restoreProjectionMatrix();
+    }
+
+    /**
+     * Directly draws the given renderable into a list of {@link NativeImage}s at the given resolution.
+     * This method will draw each frame of the image and tick its sprites to animate the texture.
+     *
+     * @param renderable The renderable to draw
+     * @param frameCount The number of frames to render
+     * @param sprites    The texture sprites
+     * @param size       The resolution to render at
+     * @return The created images
+     */
+    public static List<NativeImage> drawFramed(Renderable<?> renderable, int frameCount, List<TextureAtlasSprite> sprites, int size) {
+        // TODO - consider caching so that huge frame times can simply use the same image instead of rendering it hundreds of times
+        var tickables = sprites.stream().<Runnable>map(sp -> {
+            var texture = ((SpriteContentsAccessor) sp.contents()).iae$getAnimatedTexture();
+            if (texture == null) return null;
+            var ticker = texture.createTicker();
+            return () -> {
+                Minecraft.getInstance().getModelManager().getAtlas(sp.atlasLocation())
+                                .bind();
+                ticker.tickAndUpload(sp.getX(), sp.getY());
+            };
+        }).filter(Objects::nonNull).toList();
+        for (TextureAtlasSprite sprite : sprites) {
+            sprite.uploadFirstFrame();
+        }
+
+        var list = new ArrayList<NativeImage>(frameCount);
+        for (int i = 0; i < frameCount; i++) {
+            list.add(drawIntoImage(renderable, frameCount, size));
+
+            // Tick the sprites
+            tickables.forEach(Runnable::run);
+        }
+        return list;
     }
 
     /**

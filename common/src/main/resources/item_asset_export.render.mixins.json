@@ -7,7 +7,9 @@
   "mixins": [],
   "client": [
     "access.CameraInvoker",
-    "access.FramebufferAccessor"
+    "access.FramebufferAccessor",
+    "access.AnimatedTextureAccessor",
+    "access.SpriteContentsAccessor"
   ],
   "server": [],
   "injectors": {

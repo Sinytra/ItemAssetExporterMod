@@ -23,11 +23,15 @@
  */
 package com.glisco.isometricrenders.util;
 
-import org.sinytra.assetexport.Constants;
 import com.mojang.blaze3d.platform.NativeImage;
+import org.sinytra.assetexport.Constants;
 
+import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +40,21 @@ public class ImageIO {
 
     private static final AtomicInteger TASK_COUNT = new AtomicInteger(0);
 
+    public static CompletableFuture<File> save(List<NativeImage> frames, File imageFile) {
+        return save(out -> {
+            try (var writer = new GifSequenceWriter(new BufferedOutputStream(new FileOutputStream(out)), BufferedImage.TYPE_INT_ARGB, 1000/20, true)) {
+                for (NativeImage frame : frames) {
+                    writer.writeToSequence(frame);
+                }
+            }
+        }, imageFile);
+    }
+
     public static CompletableFuture<File> save(NativeImage image, File imageFile) {
+        return save(image::writeToFile, imageFile);
+    }
+
+    public static CompletableFuture<File> save(IoWriter image, File imageFile) {
         final var future = new CompletableFuture<File>();
 
         TASK_COUNT.incrementAndGet();
@@ -44,7 +62,7 @@ public class ImageIO {
             imageFile.getParentFile().mkdirs();
 
             try {
-                image.writeToFile(imageFile);
+                image.write(imageFile);
                 Constants.LOG.info("Image " + imageFile.getAbsolutePath() + " saved");
                 future.complete(imageFile);
             } catch (IOException e) {
@@ -56,5 +74,10 @@ public class ImageIO {
         });
 
         return future;
+    }
+
+    @FunctionalInterface
+    public interface IoWriter {
+        void write(File out) throws IOException;
     }
 }

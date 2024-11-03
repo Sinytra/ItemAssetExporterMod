@@ -23,6 +23,6 @@
         "fabric-api": "*",
         "minecraft": ">=${minecraft_version}",
         "java": ">=${java_version}"
-    }
+    },
+    "accessWidener": "${mod_id}.accesswidener"
 }
-  
