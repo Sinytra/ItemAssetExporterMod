@@ -1,4 +1,4 @@
 {
-  "net/minecraft/world/item/Item": "org/sinytra/assetexport/dumper/Identifiable",
-  "net/minecraft/world/item/crafting/RecipeHolder": "org/sinytra/assetexport/dumper/Identifiable"
+  "net/minecraft/world/item/Item": "org/sinytra/assetexport/dumper/IdentifiableType<net.minecraft.world.item.ItemStack>",
+  "net/minecraft/world/item/ItemStack": "org/sinytra/assetexport/dumper/Identifiable<net.minecraft.world.item.ItemStack>"
 }

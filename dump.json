@@ -7,8 +7,7 @@
     },
     "selectors": [
       {
-        "type": "with_namespace",
-        "namespace": "minecraft"
+        "type": "all"
       }
     ]
   }

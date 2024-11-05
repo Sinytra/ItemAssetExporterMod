@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public record ItemAssetDumper(DumpFormat format, int resolution) implements AssetDumper<Item> {
+public record ItemAssetDumper(DumpFormat format, int resolution) implements AssetDumper<Item, ItemStack> {
     public static final MapCodec<ItemAssetDumper> CODEC = RecordCodecBuilder.mapCodec(in -> in.group(
             Codec.STRING.fieldOf("format").xmap(x -> DumpFormat.valueOf(x.toUpperCase(Locale.ROOT)), d -> d.name().toLowerCase(Locale.ROOT)).forGetter(ItemAssetDumper::format),
             Codec.INT.fieldOf("resolution").forGetter(ItemAssetDumper::resolution)
@@ -35,16 +35,15 @@ public record ItemAssetDumper(DumpFormat format, int resolution) implements Asse
     private static final Set<Item> IGNORE_DEPTH = Set.of(Items.SPYGLASS, Items.TRIDENT);
 
     @Override
-    public ObjectSource<Item> getSource() {
+    public ObjectSource<Item, ItemStack> getSource() {
         return ObjectSource.fromRegistry(BuiltInRegistries.ITEM);
     }
 
     @Override
-    public void dump(Function<ResourceLocation, Path> file, Item object, Consumer<CompletableFuture<File>> out) {
-        ItemStack stack = new ItemStack(object);
+    public void dump(Function<ResourceLocation, Path> file, ItemStack stack, Consumer<CompletableFuture<File>> out) {
         ItemRenderable renderable = new ItemRenderable(stack);
 
-        boolean depth = !IGNORE_DEPTH.contains(object) && Minecraft.getInstance().getItemRenderer().getModel(stack, null, null, 0).isGui3d();
+        boolean depth = !IGNORE_DEPTH.contains(stack.getItem()) && Minecraft.getInstance().getItemRenderer().getModel(stack, null, null, 0).isGui3d();
         setupItem(renderable, depth);
 
         if (format == DumpFormat.PNG) {
@@ -61,10 +60,10 @@ public record ItemAssetDumper(DumpFormat format, int resolution) implements Asse
     }
 
     @Override
-    public boolean canDump(Item object) {
-        return format == DumpFormat.GIF ? ItemRenderable.getModel(object.getDefaultInstance()).getQuads(null, null, RandomSource.create(1L))
+    public boolean canDump(ItemStack object) {
+        return format != DumpFormat.GIF || ItemRenderable.getModel(object).getQuads(null, null, RandomSource.create(1L))
                 .stream().map(BakedQuad::getSprite).distinct()
-                .anyMatch(s -> ((SpriteContentsAccessor) s.contents()).iae$getAnimatedTexture() != null) : true;
+                .anyMatch(s -> ((SpriteContentsAccessor) s.contents()).iae$getAnimatedTexture() != null);
     }
 
     private static void setupItem(ItemRenderable renderable, boolean depth) {
@@ -75,7 +74,7 @@ public record ItemAssetDumper(DumpFormat format, int resolution) implements Asse
     }
 
     @Override
-    public MapCodec<? extends AssetDumper<Item>> codec() {
+    public MapCodec<? extends AssetDumper<Item, ItemStack>> codec() {
         return CODEC;
     }
 

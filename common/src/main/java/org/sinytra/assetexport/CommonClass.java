@@ -4,9 +4,11 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
+import net.minecraft.util.thread.ReentrantBlockableEventLoop;
 import org.sinytra.assetexport.dumper.AssetDump;
 import org.sinytra.assetexport.dumper.Identifiable;
 import org.sinytra.assetexport.dumper.IdentifiableSelector;
+import org.sinytra.assetexport.dumper.IdentifiableType;
 import org.sinytra.assetexport.platform.Services;
 
 import java.io.File;
@@ -15,7 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -25,29 +27,36 @@ import java.util.stream.Collectors;
 public class CommonClass {
     public static final String CONFIG_FILE = "item_asset_export.render.config.file";
     public static final String OUTPUT_PROPERTY = "item_asset_export.render.output";
+    public static boolean render;
+    public static Runnable mainThread;
+    public static Thread mainTh;
 
-    public static void runRender() {
+    public static void startRender() {
         if (shouldRender()) {
-            try {
-                String outputProperty = System.getProperty(OUTPUT_PROPERTY);
-                Path path = outputProperty != null ? Path.of(outputProperty) : Services.PLATFORM.getGameDirectory();
+            render = true;
+        }
+    }
 
-                var dumps = getDumps();
-                for (int i = 0; i < dumps.size(); i++) {
-                    var dump = dumps.get(i);
-                    Constants.LOG.info("Running dump {} ({} selecting {})", i, dump, dump.selectors().stream()
-                            .map(Object::toString).collect(Collectors.joining(", ")));
+    public static void queueTasks(ReentrantBlockableEventLoop<Runnable> thread) {
+        try {
+            String outputProperty = System.getProperty(OUTPUT_PROPERTY);
+            Path path = outputProperty != null ? Path.of(outputProperty) : Services.PLATFORM.getGameDirectory();
 
-                    runDump(path, dump);
+            var dumps = getDumps();
+            for (int i = 0; i < dumps.size(); i++) {
+                var dump = dumps.get(i);
+                Constants.LOG.info("Running dump {} ({} selecting {})", i, dump, dump.selectors().stream()
+                        .map(Object::toString).collect(Collectors.joining(", ")));
 
-                    Constants.LOG.info("Finished dump {}", i);
-                }
+                runDump(dump.outputLocation().map(path::resolve).orElse(path), (AssetDump) dump, thread);
 
-                Constants.LOG.info("Render complete, shutting down");
-                Minecraft.getInstance().stop();
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to read dumps file", e);
+                Constants.LOG.info("Finished dump {}", i);
             }
+
+            Constants.LOG.info("Render complete in {}ms, shutting down", System.currentTimeMillis() - ProgressTracker.start);
+            Minecraft.getInstance().stop();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read dumps file", e);
         }
     }
 
@@ -55,7 +64,7 @@ public class CommonClass {
         return System.getProperty(CONFIG_FILE) != null;
     }
 
-    private static List<AssetDump<?>> getDumps() throws IOException {
+    private static List<AssetDump<?, ?>> getDumps() throws IOException {
         var file = Path.of(System.getProperty(CONFIG_FILE));
         var dumps = AssetDump.CODEC.listOf()
                 .decode(JsonOps.INSTANCE, GsonHelper.parseArray(Files.readString(file)))
@@ -63,26 +72,39 @@ public class CommonClass {
         return dumps.getFirst();
     }
 
-    private static <T extends Identifiable> void runDump(Path basePath, AssetDump<T> dump) {
-        var selected = new HashSet<T>();
+    private static <Z extends Identifiable<Z>, T extends IdentifiableType<Z>> void runDump(Path basePath, AssetDump<T, Z> dump, ReentrantBlockableEventLoop<Runnable> thread) {
+        var selected = new HashMap<T, Z>();
         var universe = dump.type().getSource();
         for (IdentifiableSelector selector : dump.selectors()) {
             selector.select(universe, selected);
         }
 
-        selected.removeIf(Predicate.not(dump.type()::canDump));
+        selected.values().removeIf(Predicate.not(dump.type()::canDump));
         if (selected.isEmpty()) return;
 
         Function<ResourceLocation, Path> pathFunction = location -> basePath.resolve(location.getNamespace() + "/" + location.getPath());
 
+        ProgressTracker.generated = new ProgressTracker.Counter(selected.size());
+        ProgressTracker.dumped = new ProgressTracker.Counter(selected.size());
+        ProgressTracker.start = System.currentTimeMillis();
+
         Constants.LOG.info("Dumping {} objects...", selected.size());
 
         var output = Collections.synchronizedList(new ArrayList<CompletableFuture<File>>());
-        CompletableFuture.allOf(selected.stream().map(s -> Minecraft.getInstance().submit(() ->
-                        dump.type().dump(pathFunction, s, output::add)))
+        CompletableFuture.allOf(selected.values().stream().map(s -> thread.submit(() ->
+                {
+                    ProgressTracker.currentRender = s;
+                    dump.type().dump(pathFunction, s, fu -> output.add(fu.thenApply(f -> {
+                        ProgressTracker.dumped.increment();
+                        return f;
+                    })));
+                    ProgressTracker.generated.increment();
+                }))
                 .toArray(CompletableFuture[]::new)).join();
 
         CompletableFuture.allOf(output.toArray(CompletableFuture[]::new)).join();
+
+        ProgressTracker.currentRender = null;
     }
 
 }

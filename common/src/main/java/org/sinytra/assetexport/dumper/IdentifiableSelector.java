@@ -8,12 +8,15 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface IdentifiableSelector {
     BiMap<String, MapCodec<? extends IdentifiableSelector>> REGISTRY = ImmutableBiMap.of(
             "all", All.CODEC,
             "exclude", Exclude.CODEC,
+            "fixed", Fixed.CODEC,
             "with_namespace", WithNamespace.CODEC
     );
 
@@ -23,7 +26,7 @@ public interface IdentifiableSelector {
             REGISTRY::get
     );
 
-    <T extends Identifiable> void select(ObjectSource<T> selector, Set<T> output);
+    <Z extends Identifiable<Z>, T extends IdentifiableType<Z>> void select(ObjectSource<T, Z> selector, Map<T, Z> output);
 
     MapCodec<? extends IdentifiableSelector> codec();
 
@@ -31,8 +34,10 @@ public interface IdentifiableSelector {
         public static final MapCodec<All> CODEC = MapCodec.unit(All::new);
 
         @Override
-        public <T extends Identifiable> void select(ObjectSource<T> selector, Set<T> output) {
-            output.addAll(selector.getAll());
+        public <Z extends Identifiable<Z>, T extends IdentifiableType<Z>> void select(ObjectSource<T, Z> selector, Map<T, Z> output) {
+            for (T t : selector.getAll()) {
+                output.put(t, t.defaultIdentifiable());
+            }
         }
 
         @Override
@@ -46,8 +51,26 @@ public interface IdentifiableSelector {
                 .listOf().fieldOf("ids").xmap(l -> new Exclude(new HashSet<>(l)), exclude -> new ArrayList<>(exclude.ids()));
 
         @Override
-        public <T extends Identifiable> void select(ObjectSource<T> selector, Set<T> output) {
-            output.removeIf(o -> ids.contains(o.getId()));
+        public <Z extends Identifiable<Z>, T extends IdentifiableType<Z>> void select(ObjectSource<T, Z> selector, Map<T, Z> output) {
+            output.keySet().removeIf(k -> ids.contains(k.getId()));
+        }
+
+        @Override
+        public MapCodec<? extends IdentifiableSelector> codec() {
+            return CODEC;
+        }
+    }
+
+    record Fixed(List<ResourceLocation> ids) implements IdentifiableSelector {
+        public static final MapCodec<Fixed> CODEC = ResourceLocation.CODEC
+                .listOf().fieldOf("ids").xmap(Fixed::new, Fixed::ids);
+
+        @Override
+        public <Z extends Identifiable<Z>, T extends IdentifiableType<Z>> void select(ObjectSource<T, Z> selector, Map<T, Z> output) {
+            for (ResourceLocation id : ids) {
+                var type = selector.byId(id);
+                output.put(type, type.defaultIdentifiable());
+            }
         }
 
         @Override
@@ -61,9 +84,11 @@ public interface IdentifiableSelector {
                 .fieldOf("namespace").xmap(WithNamespace::new, WithNamespace::namespace);
 
         @Override
-        public <T extends Identifiable> void select(ObjectSource<T> selector, Set<T> output) {
+        public <Z extends Identifiable<Z>, T extends IdentifiableType<Z>> void select(ObjectSource<T, Z> selector, Map<T, Z> output) {
             for (T t : selector.getAll()) {
-                if (t.getId().getNamespace().equals(namespace)) output.add(t);
+                if (t.getId().getNamespace().equals(namespace)) {
+                    output.put(t, t.defaultIdentifiable());
+                }
             }
         }
 

@@ -4,11 +4,19 @@
   "package": "org.sinytra.assetexport.mixin",
   "refmap": "${mod_id}.refmap.json",
   "compatibilityLevel": "JAVA_18",
+  "plugin": "org.sinytra.assetexport.mixin.MixinPlugin",
   "mixins": [
-    "ItemMixin"
+    "ItemMixin",
+    "ItemStackMixin",
+    "conditional.DataFixersMixin"
   ],
   "client": [
-    "MinecraftMixin"
+    "MinecraftMixin",
+    "conditional.GameRendererMixin",
+    "conditional.RenderSystemMixin",
+    "conditional.TesselatorMixin",
+    "conditional.GlStateManagerMixin",
+    "access.RenderSystemAccess"
   ],
   "server": [],
   "injectors": {

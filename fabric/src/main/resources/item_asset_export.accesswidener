@@ -2,3 +2,23 @@ accessWidener v2 named
 accessible class net/minecraft/client/renderer/texture/SpriteContents$FrameInfo
 accessible field net/minecraft/client/renderer/texture/SpriteContents$FrameInfo time I
 accessible class net/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture
+
+accessible class com/mojang/blaze3d/platform/GlStateManager$BlendState
+accessible class com/mojang/blaze3d/platform/GlStateManager$DepthState
+accessible class com/mojang/blaze3d/platform/GlStateManager$CullState
+accessible class com/mojang/blaze3d/platform/GlStateManager$PolygonOffsetState
+accessible class com/mojang/blaze3d/platform/GlStateManager$ColorLogicState
+accessible class com/mojang/blaze3d/platform/GlStateManager$StencilState
+accessible class com/mojang/blaze3d/platform/GlStateManager$ScissorState
+accessible class com/mojang/blaze3d/platform/GlStateManager$TextureState
+accessible class com/mojang/blaze3d/platform/GlStateManager$ColorMask
+
+accessible method com/mojang/blaze3d/platform/GlStateManager$BlendState <init> ()V
+accessible method com/mojang/blaze3d/platform/GlStateManager$DepthState <init> ()V
+accessible method com/mojang/blaze3d/platform/GlStateManager$CullState <init> ()V
+accessible method com/mojang/blaze3d/platform/GlStateManager$PolygonOffsetState <init> ()V
+accessible method com/mojang/blaze3d/platform/GlStateManager$ColorLogicState <init> ()V
+accessible method com/mojang/blaze3d/platform/GlStateManager$StencilState <init> ()V
+accessible method com/mojang/blaze3d/platform/GlStateManager$ScissorState <init> ()V
+accessible method com/mojang/blaze3d/platform/GlStateManager$TextureState <init> ()V
+accessible method com/mojang/blaze3d/platform/GlStateManager$ColorMask <init> ()V

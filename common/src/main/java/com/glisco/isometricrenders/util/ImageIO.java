@@ -51,7 +51,10 @@ public class ImageIO {
     }
 
     public static CompletableFuture<File> save(NativeImage image, File imageFile) {
-        return save(image::writeToFile, imageFile);
+        return save(out -> {
+            image.writeToFile(out);
+            image.close();
+        }, imageFile);
     }
 
     public static CompletableFuture<File> save(IoWriter image, File imageFile) {

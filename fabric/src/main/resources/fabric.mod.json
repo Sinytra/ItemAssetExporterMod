@@ -27,8 +27,8 @@
     "accessWidener": "${mod_id}.accesswidener",
     "custom": {
         "loom:injected_interfaces": {
-            "net/minecraft/class_1792": ["org/sinytra/assetexport/dumper/Identifiable"],
-            "net/minecraft/class_8786": ["org/sinytra/assetexport/dumper/Identifiable"]
+            "net/minecraft/class_1792": ["org/sinytra/assetexport/dumper/IdentifiableType<Lnet/minecraft/class_1799;>"],
+            "net/minecraft/class_1799": ["org/sinytra/assetexport/dumper/Identifiable<Lnet/minecraft/class_1799;>"]
         }
     }
 }

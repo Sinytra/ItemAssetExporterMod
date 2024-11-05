@@ -13,22 +13,22 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public interface AssetDumper<T extends Identifiable> {
-    BiMap<String, MapCodec<? extends AssetDumper<?>>> REGISTRY = ImmutableBiMap.of(
+public interface AssetDumper<T extends IdentifiableType<Z>, Z extends Identifiable<Z>> {
+    BiMap<String, MapCodec<? extends AssetDumper<?, ?>>> REGISTRY = ImmutableBiMap.of(
             "item", ItemAssetDumper.CODEC
     );
 
-    Codec<AssetDumper<?>> CODEC = Codec.STRING.dispatch(
+    Codec<AssetDumper<?, ?>> CODEC = Codec.STRING.dispatch(
             "type",
             d -> REGISTRY.inverse().get(d.codec()),
             REGISTRY::get
     );
 
-    ObjectSource<T> getSource();
+    ObjectSource<T, Z> getSource();
 
-    void dump(Function<ResourceLocation, Path> file, T object, Consumer<CompletableFuture<File>> out);
+    void dump(Function<ResourceLocation, Path> file, Z object, Consumer<CompletableFuture<File>> out);
 
-    boolean canDump(T object);
+    boolean canDump(Z object);
 
-    MapCodec<? extends AssetDumper<T>> codec();
+    MapCodec<? extends AssetDumper<T, Z>> codec();
 }

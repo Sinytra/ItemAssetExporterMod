@@ -96,6 +96,7 @@ public class GifSequenceWriter implements Closeable {
 
     public void writeToSequence(NativeImage image) throws IOException {
         writeToSequence(ImageIO.read(new ByteArrayInputStream(image.asByteArray())));
+        image.close();
     }
 
     public void writeToSequence(RenderedImage img) throws IOException {
