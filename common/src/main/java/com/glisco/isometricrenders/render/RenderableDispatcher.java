@@ -25,6 +25,7 @@ package com.glisco.isometricrenders.render;
 
 import com.glisco.isometricrenders.mixin.access.FramebufferAccessor;
 import com.glisco.isometricrenders.mixin.access.SpriteContentsAccessor;
+import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -32,12 +33,12 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexSorting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Vector4f;
+import org.sinytra.assetexport.CommonClass;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +67,6 @@ public class RenderableDispatcher {
         transformer.accept(modelViewStack);
 
         renderable.properties().applyToViewMatrix(modelViewStack);
-        RenderSystem.applyModelViewMatrix();
 
         RenderSystem.backupProjectionMatrix();
         Matrix4f projectionMatrix = new Matrix4f().setOrtho(-aspectRatio, aspectRatio, -1, 1, -1000, 3000);
@@ -74,11 +74,9 @@ public class RenderableDispatcher {
         // Unproject to get the camera position for vertex sorting
         var camPos = new Vector4f(0, 0, 0, 1);
         camPos.mul(new Matrix4f(projectionMatrix).invert()).mul(new Matrix4f(modelViewStack).invert());
-        RenderSystem.setProjectionMatrix(projectionMatrix, VertexSorting.byDistance(-camPos.x, -camPos.y, -camPos.z));
+        RenderSystem.setProjectionMatrix(projectionMatrix, ProjectionType.ORTHOGRAPHIC);
 
-//        ExampleMod.beginRenderableDraw();
-
-        RenderSystem.runAsFancy(() -> {
+//        RenderSystem.runAsFancy(() -> {
             // Emit untransformed vertices
             renderable.emitVertices(
                     new PoseStack(),
@@ -88,12 +86,9 @@ public class RenderableDispatcher {
 
             // --> Draw
             renderable.draw(modelViewStack);
-        });
-
-//        ExampleMod.endRenderableDraw();
+//        });
 
         modelViewStack.popMatrix();
-        RenderSystem.applyModelViewMatrix();
 
         renderable.cleanUp();
         RenderSystem.restoreProjectionMatrix();
@@ -157,17 +152,21 @@ public class RenderableDispatcher {
      */
     @SuppressWarnings("ConstantConditions")
     public static RenderTarget drawIntoTexture(Renderable<?> renderable, float tickDelta, int size) {
-        final var framebuffer = new TextureTarget(size, size, true, Minecraft.ON_OSX);
+        final var framebuffer = new TextureTarget(size, size, true);
 
         RenderSystem.enableBlend();
-        RenderSystem.clear(16640, Minecraft.ON_OSX);
+        RenderSystem.clear(16640);
 
         framebuffer.setClearColor(0, 0, 0, 0);
-        framebuffer.clear(Minecraft.ON_OSX);
+        framebuffer.clear();
 
         framebuffer.bindWrite(true);
+        CommonClass.mainTargetOverride = framebuffer;
+        
         drawIntoActiveFramebuffer(renderable, 1, tickDelta, matrixStack -> {});
+        
         framebuffer.unbindWrite();
+        CommonClass.mainTargetOverride = null;
 
         // Release depth attachment and FBO to save on VRAM - we only need
         // the color attachment texture to later turn into an image

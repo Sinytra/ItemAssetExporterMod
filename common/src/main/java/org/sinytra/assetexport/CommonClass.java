@@ -3,14 +3,14 @@ package org.sinytra.assetexport;
 import com.glisco.isometricrenders.render.ItemRenderable;
 import com.glisco.isometricrenders.render.RenderableDispatcher;
 import com.glisco.isometricrenders.util.ImageIO;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.world.item.*;
 import org.sinytra.assetexport.platform.Services;
 
 import java.nio.file.Path;
@@ -27,7 +27,10 @@ public class CommonClass {
     public static final boolean PNGS = getBoolean("item_asset_export.render.outputs.png", true);
     public static final boolean ANIMATED_GIFS = getBoolean("item_asset_export.render.outputs.gif", false);
     private static final int RESOLUTION = 128;
+    private static final Set<Item> IGNORE_SETUP = Set.of(Items.SHIELD);
     private static final Set<Item> IGNORE_DEPTH = Set.of(Items.SPYGLASS, Items.TRIDENT);
+
+    public static RenderTarget mainTargetOverride = null;
 
     public static void runRender() {
         if (shouldRender()) {
@@ -83,8 +86,15 @@ public class CommonClass {
                 ItemStack stack = new ItemStack(item);
                 ItemRenderable renderable = new ItemRenderable(stack);
 
-                boolean depth = !IGNORE_DEPTH.contains(item) && Minecraft.getInstance().getItemRenderer().getModel(stack, null, null, 0).isGui3d();
-                setupItem(renderable, depth);
+                ItemStackRenderState renderState = new ItemStackRenderState();
+                Minecraft.getInstance()
+                    .getItemModelResolver()
+                    .updateForTopItem(renderState, stack, ItemDisplayContext.GUI, false, null, null, 0);
+
+                if (!IGNORE_SETUP.contains(item) && !(item instanceof BedItem)) {
+                    boolean depth = !IGNORE_DEPTH.contains(item) && renderState.isGui3d();
+                    setupItem(renderable, depth);   
+                }
 
                 return scheduleRender(renderable, name.getNamespace(), name.getPath(), output);
             })

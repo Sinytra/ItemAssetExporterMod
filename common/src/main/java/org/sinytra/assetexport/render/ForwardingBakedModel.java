@@ -17,7 +17,6 @@
 package org.sinytra.assetexport.render;
 
 import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
@@ -51,11 +50,6 @@ public abstract class ForwardingBakedModel implements BakedModel {
 	}
 
 	@Override
-	public boolean isCustomRenderer() {
-		return wrapped.isCustomRenderer();
-	}
-
-	@Override
 	public TextureAtlasSprite getParticleIcon() {
 		return wrapped.getParticleIcon();
 	}
@@ -68,10 +62,5 @@ public abstract class ForwardingBakedModel implements BakedModel {
 	@Override
 	public ItemTransforms getTransforms() {
 		return wrapped.getTransforms();
-	}
-
-	@Override
-	public ItemOverrides getOverrides() {
-		return wrapped.getOverrides();
 	}
 }

@@ -69,7 +69,7 @@ public class DefaultPropertyBundle implements PropertyBundle {
     protected void updateAndApplyRotationOffset(Matrix4fStack modelViewStack) {
         if (rotationSpeed.get() != 0) {
             if (!this.rotationOffsetUpdated) {
-                rotationOffset += Minecraft.getInstance().getTimer().getGameTimeDeltaTicks() * rotationSpeed.get() * .1f;
+                rotationOffset += Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaTicks() * rotationSpeed.get() * .1f;
                 this.rotationOffsetUpdated = true;
             }
             modelViewStack.rotate(Axis.YP.rotationDegrees(rotationOffset));

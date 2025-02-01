@@ -25,6 +25,9 @@ loom {
             runDir('runs/client')
 
             property('item_asset_export.render.namespaces', 'minecraft')
+            property('item_asset_export.render.outputs.gif', 'true')
+            property('item_asset_export.render.outputs.png', 'true')
+            property('item_asset_export.render.output', file('runs/client/.assets/item').absolutePath)
         }
         server {
             server()

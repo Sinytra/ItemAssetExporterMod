@@ -9,7 +9,11 @@
     "access.CameraInvoker",
     "access.FramebufferAccessor",
     "access.AnimatedTextureAccessor",
-    "access.SpriteContentsAccessor"
+    "access.SpriteContentsAccessor",
+    "access.NativeImageAccessor",
+    "access.ItemRenderStateAccessor",
+    "access.LayerRenderStateAccessor",
+    "RenderStateShardMixin"
   ],
   "server": [],
   "injectors": {

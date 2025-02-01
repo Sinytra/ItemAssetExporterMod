@@ -1,6 +1,8 @@
 package com.glisco.isometricrenders.util;
 
+import com.glisco.isometricrenders.mixin.access.NativeImageAccessor;
 import com.mojang.blaze3d.platform.NativeImage;
+import org.lwjgl.stb.STBImage;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -15,10 +17,9 @@ import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
-import java.io.ByteArrayInputStream;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 
 /**
  * A write for gifs that uses AWT.
@@ -77,7 +78,7 @@ public class GifSequenceWriter implements Closeable {
         child.setAttribute("authenticationCode", "2.0");
 
         int loopContinuously = loop ? 0 : 1;
-        child.setUserObject(new byte[] {0x1, (byte) (loopContinuously & 0xFF), (byte) ((loopContinuously >> 8) & 0xFF)});
+        child.setUserObject(new byte[]{0x1, (byte) (loopContinuously & 0xFF), (byte) ((loopContinuously >> 8) & 0xFF)});
         appExtensionsNode.appendChild(child);
         metadata.setFromTree(metaFormatName, root);
     }
@@ -95,7 +96,17 @@ public class GifSequenceWriter implements Closeable {
     }
 
     public void writeToSequence(NativeImage image) throws IOException {
-        writeToSequence(ImageIO.read(new ByteArrayInputStream(image.asByteArray())));
+        writeToSequence(ImageIO.read(new ByteArrayInputStream(asByteArray(image))));
+    }
+
+    public static byte[] asByteArray(NativeImage nativeImage) throws IOException {
+        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(); WritableByteChannel writableByteChannel = Channels.newChannel(byteArrayOutputStream)) {
+            if (!((NativeImageAccessor) (Object) nativeImage).invokeWriteToChannel(writableByteChannel)) {
+                throw new IOException("Could not write image to byte array: " + STBImage.stbi_failure_reason());
+            } else {
+                return byteArrayOutputStream.toByteArray();
+            }
+        }
     }
 
     public void writeToSequence(RenderedImage img) throws IOException {
