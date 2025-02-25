@@ -63,8 +63,12 @@ public class GameRendererMixin {
                         glfwMakeContextCurrent(newWindow);
                         GL.createCapabilities();
 
-                        // TODO - this is CURSED. we need to figure out the joining as we're starting to spawn too many threads
-                        Executors.newSingleThreadExecutor().execute(() -> CommonClass.queueTasks(dumper));
+                        CommonClass.renderQueue = dumper;
+
+                        if (!CommonClass.loadWorld) {
+                            // TODO - this is CURSED. we need to figure out the joining as we're starting to spawn too many threads
+                            Executors.newSingleThreadExecutor().execute(() -> CommonClass.queueTasks(dumper));
+                        }
 
                         dumper.run();
                     }

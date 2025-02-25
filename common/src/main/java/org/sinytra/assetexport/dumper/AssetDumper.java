@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableBiMap;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.resources.ResourceLocation;
+import org.sinytra.assetexport.dumper.impl.EntityAssetDumper;
 import org.sinytra.assetexport.dumper.impl.ItemAssetDumper;
 
 import java.io.File;
@@ -15,7 +16,8 @@ import java.util.function.Function;
 
 public interface AssetDumper<T extends IdentifiableType<Z>, Z extends Identifiable<Z>> {
     BiMap<String, MapCodec<? extends AssetDumper<?, ?>>> REGISTRY = ImmutableBiMap.of(
-            "item", ItemAssetDumper.CODEC
+            "item", ItemAssetDumper.CODEC,
+            "entity", EntityAssetDumper.CODEC
     );
 
     Codec<AssetDumper<?, ?>> CODEC = Codec.STRING.dispatch(
@@ -31,4 +33,8 @@ public interface AssetDumper<T extends IdentifiableType<Z>, Z extends Identifiab
     boolean canDump(Z object);
 
     MapCodec<? extends AssetDumper<T, Z>> codec();
+
+    default boolean requiresLevel() {
+        return false;
+    }
 }

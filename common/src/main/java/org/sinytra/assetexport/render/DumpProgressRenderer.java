@@ -17,6 +17,7 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
+import org.sinytra.assetexport.CommonClass;
 import org.sinytra.assetexport.ProgressTracker;
 
 import java.util.concurrent.TimeUnit;
@@ -59,10 +60,10 @@ public class DumpProgressRenderer implements Runnable {
         // Wait for one frame to be complete before swapping; enable vsync in other words.
         glfwSwapInterval(1);
         try {
-            while (Minecraft.getInstance().isRunning() && !window.shouldClose()) {
+            if (Minecraft.getInstance().isRunning() && !window.shouldClose()) {
                 long nt;
                 if ((nt = System.nanoTime()) < nextFrameTime) {
-                    continue;
+                    return;
                 }
                 nextFrameTime = nt + MINFRAMETIME;
 
@@ -116,7 +117,12 @@ public class DumpProgressRenderer implements Runnable {
     private void render(GuiGraphics graphics) {
         int width = (int)(window.getWidth() / window.getGuiScale());
         int y = 30;
-        graphics.drawCenteredString(font, "Running asset dump...", width / 2, y, 0xffffff);
+
+        if (ProgressTracker.start == 0 && CommonClass.loadWorld) {
+            graphics.drawCenteredString(font, "Loading render world...", width / 2, y, 0xffffff);
+        } else {
+            graphics.drawCenteredString(font, "Running asset dump...", width / 2, y, 0xffffff);
+        }
 
         y += font.lineHeight + 5;
 

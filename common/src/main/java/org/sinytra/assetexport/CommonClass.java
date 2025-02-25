@@ -27,13 +27,20 @@ import java.util.stream.Collectors;
 public class CommonClass {
     public static final String CONFIG_FILE = "item_asset_export.render.config.file";
     public static final String OUTPUT_PROPERTY = "item_asset_export.render.output";
-    public static boolean render;
+    public static boolean render, loadWorld;
     public static Runnable mainThread;
     public static Thread mainTh;
+    public static ReentrantBlockableEventLoop<Runnable> renderQueue;
 
     public static void startRender() {
         if (shouldRender()) {
             render = true;
+
+            try {
+                loadWorld = getDumps().stream().anyMatch(a -> a.type().requiresLevel());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -54,6 +61,9 @@ public class CommonClass {
             }
 
             Constants.LOG.info("Render complete in {}ms, shutting down", System.currentTimeMillis() - ProgressTracker.start);
+            if (Minecraft.getInstance().hasSingleplayerServer()) {
+                Minecraft.getInstance().getSingleplayerServer().halt(true);
+            }
             Minecraft.getInstance().stop();
         } catch (IOException e) {
             throw new RuntimeException("Failed to read dumps file", e);
@@ -79,7 +89,7 @@ public class CommonClass {
             selector.select(universe, selected);
         }
 
-        selected.values().removeIf(Predicate.not(dump.type()::canDump));
+        selected.values().removeIf(z -> z == null || !dump.type().canDump(z));
         if (selected.isEmpty()) return;
 
         Function<ResourceLocation, Path> pathFunction = location -> basePath.resolve(location.getNamespace() + "/" + location.getPath());

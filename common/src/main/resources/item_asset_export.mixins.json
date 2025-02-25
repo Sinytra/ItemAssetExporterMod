@@ -8,6 +8,8 @@
   "mixins": [
     "ItemMixin",
     "ItemStackMixin",
+    "EntityTypeMixin",
+    "EntityMixin",
     "conditional.DataFixersMixin"
   ],
   "client": [
@@ -16,6 +18,8 @@
     "conditional.RenderSystemMixin",
     "conditional.TesselatorMixin",
     "conditional.GlStateManagerMixin",
+    "conditional.WorldOpenFlowsMixin",
+    "conditional.ClientPacketListenerMixin",
     "access.RenderSystemAccess"
   ],
   "server": [],
