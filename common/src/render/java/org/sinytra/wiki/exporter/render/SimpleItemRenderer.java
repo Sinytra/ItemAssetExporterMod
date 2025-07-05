@@ -1,0 +1,75 @@
+package org.sinytra.wiki.exporter.render;
+
+import com.mojang.blaze3d.ProjectionType;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.platform.Lighting;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.item.TrackingItemStackRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+
+public class SimpleItemRenderer {
+    private static final int PACKED_LIGHT = 15728880;
+
+    private final CachedOrthoProjectionMatrixBuffer itemsProjectionMatrixBuffer = new CachedOrthoProjectionMatrixBuffer(
+        "items",
+        -10000.0F, 10000.0F,
+        true
+    );
+
+    private final RenderTarget renderTarget;
+    private final MultiBufferSource.BufferSource bufferSource;
+    private final int scale;
+
+    public SimpleItemRenderer(RenderTarget renderTarget, MultiBufferSource.BufferSource bufferSource, int scale) {
+        this.renderTarget = renderTarget;
+        this.bufferSource = bufferSource;
+        this.scale = scale;
+    }
+
+    public void renderItem(ItemStack stack) {
+        Minecraft minecraft = Minecraft.getInstance();
+        RenderSystem.outputColorTextureOverride = this.renderTarget.getColorTextureView();
+        RenderSystem.outputDepthTextureOverride = this.renderTarget.getDepthTextureView();
+        int scale = this.scale;
+
+        ItemDisplayContext context = ItemDisplayContext.GUI;
+        TrackingItemStackRenderState trackingState = new TrackingItemStackRenderState();
+        minecraft
+            .getItemModelResolver()
+            .updateForTopItem(trackingState, stack, context, null, null, 0);
+        boolean isGui3D = trackingState.usesBlockLight();
+        Lighting.Entry lighting = isGui3D ? Lighting.Entry.ITEMS_3D : Lighting.Entry.ITEMS_FLAT;
+
+        RenderSystem.setupDefaultState();
+        RenderSystem.setProjectionMatrix(this.itemsProjectionMatrixBuffer.getBuffer(scale, scale), ProjectionType.ORTHOGRAPHIC);
+        minecraft.gameRenderer.getLighting().setupFor(lighting);
+
+        PoseStack poseStack = new PoseStack();
+        poseStack.pushPose();
+        poseStack.translate(scale / 2.0F, scale / 2.0F, 0.0F);
+        poseStack.scale(scale, -scale, scale);
+
+        minecraft
+            .getItemRenderer()
+            .renderStatic(
+                stack,
+                context,
+                PACKED_LIGHT,
+                OverlayTexture.NO_OVERLAY,
+                poseStack,
+                this.bufferSource,
+                null,
+                0
+            );
+        this.bufferSource.endBatch();
+
+        RenderSystem.outputColorTextureOverride = null;
+        RenderSystem.outputDepthTextureOverride = null;
+    }
+}

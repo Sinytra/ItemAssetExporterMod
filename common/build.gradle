@@ -3,9 +3,22 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
+sourceSets {
+    metadata
+    render
+}
+
+sourceSets.metadata {
+    compileClasspath += sourceSets.main.compileClasspath
+    runtimeClasspath += sourceSets.main.runtimeClasspath
+}
+sourceSets.render {
+    compileClasspath += sourceSets.main.compileClasspath
+    runtimeClasspath += sourceSets.main.runtimeClasspath
+}
+
 neoForge {
     neoFormVersion = neo_form_version
-    // Automatically enable AccessTransformers if the file exists
     def at = file('src/main/resources/META-INF/accesstransformer.cfg')
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
@@ -14,13 +27,26 @@ neoForge {
         minecraftVersion = parchment_minecraft
         mappingsVersion = parchment_version
     }
+
+    addModdingDependenciesTo sourceSets.metadata
+    addModdingDependenciesTo sourceSets.render
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.metadata
+            sourceSet sourceSets.render
+        }
+    }
 }
 
 dependencies {
     compileOnly group: 'org.spongepowered', name: 'mixin', version: '0.8.5'
-    // fabric and neoforge both bundle mixinextras, so it is safe to use it in common
     compileOnly group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
     annotationProcessor group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
+
+    metadataImplementation sourceSets.main.output
+    renderImplementation sourceSets.main.output
 }
 
 configurations {
@@ -34,8 +60,17 @@ configurations {
     }
 }
 
+jar {
+    from sourceSets.metadata.output
+    from sourceSets.render.output
+}
+
 artifacts {
-    commonJava sourceSets.main.java.sourceDirectories.singleFile
-    commonResources sourceSets.main.resources.sourceDirectories.singleFile
+    commonJava sourceSets.main.java.sourceDirectories.singleFile,
+            sourceSets.metadata.java.sourceDirectories.singleFile,
+            sourceSets.render.java.sourceDirectories.singleFile
+    commonResources sourceSets.main.resources.sourceDirectories.singleFile,
+            sourceSets.metadata.resources.sourceDirectories.singleFile,
+            sourceSets.render.resources.sourceDirectories.singleFile
 }
 

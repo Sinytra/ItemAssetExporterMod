@@ -1,4 +1,4 @@
-# Item Asset Exporter
+# Wiki Data Exporter
 
 A minimal mod to render and export item assets from mods.
 
@@ -7,7 +7,7 @@ Uses code from **glisco**'s [Isometric Renders](https://modrinth.com/mod/isometr
 
 ## Usage
 
-Specify the namespaces for which you want to render items using the `item_asset_export.render.namespaces` system
+Specify the namespaces for which you want to render items using the `wiki_exporter.render.namespaces` system
 property, separated by commas (`,`). When the game finishes loading with the property present, the mod will run its
 exports and then automatically shut it down once rendering has completed.
 
