@@ -5,20 +5,20 @@ pluginManagement {
         exclusiveContent {
             forRepository {
                 maven {
-                    name = 'Fabric'
-                    url = uri('https://maven.fabricmc.net')
+                    name = "Fabric"
+                    url = uri("https://maven.fabricmc.net")
                 }
             }
             filter {
-                includeGroup('net.fabricmc')
-                includeGroup('fabric-loom')
+                includeGroup("net.fabricmc")
+                includeGroup("fabric-loom")
             }
         }
         exclusiveContent {
             forRepository {
                 maven {
-                    name = 'Sponge'
-                    url = uri('https://repo.spongepowered.org/repository/maven-public')
+                    name = "Sponge"
+                    url = uri("https://repo.spongepowered.org/repository/maven-public")
                 }
             }
             filter {
@@ -28,23 +28,23 @@ pluginManagement {
         exclusiveContent {
             forRepository {
                 maven {
-                    name = 'Forge'
-                    url = uri('https://maven.minecraftforge.net')
+                    name = "Forge"
+                    url = uri("https://maven.minecraftforge.net")
                 }
             }
             filter {
-                includeGroupAndSubgroups('net.minecraftforge')
+                includeGroupAndSubgroups("net.minecraftforge")
             }
         }
     }
 }
 
 plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
-rootProject.name = 'WikiDataExporter'
+rootProject.name = "WikiDataExporter"
 
-include('common')
-include('fabric')
-include('neoforge')
+include("common")
+include("fabric")
+include("neoforge")
