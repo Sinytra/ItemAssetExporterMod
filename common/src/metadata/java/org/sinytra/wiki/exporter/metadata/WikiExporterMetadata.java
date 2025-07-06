@@ -4,6 +4,8 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -18,16 +20,31 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class WikiExporterMetadata implements ExporterModule {
+    private final WikiMetadataModuleConfig config;
+
+    public WikiExporterMetadata(WikiMetadataModuleConfig config) {
+        this.config = config;
+    }
+
     @Override
     public void run(Path output) throws Exception {
+        if (this.config.namespaces() == null) {
+            return;
+        }
+
         Map<String, BlockMetadata> metadata = new HashMap<>();
-        for (Block block : BuiltInRegistries.BLOCK) {
+        for (Map.Entry<ResourceKey<Block>, Block> entry : BuiltInRegistries.BLOCK.entrySet()) {
+            ResourceLocation name = entry.getKey().location();
+            Block block = entry.getValue();
+            if (!this.config.namespaces().contains(name.getNamespace())) {
+                continue;
+            }
+
             BlockMetadata data = getBlockMetadata(block);
             if (data == null) {
                 continue;
             }
-            String name = block.builtInRegistryHolder().key().location().toString();
-            metadata.put(name, data);
+            metadata.put(name.toString(), data);
         }
 
         Gson gson = new GsonBuilder()

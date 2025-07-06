@@ -59,15 +59,24 @@ neoForge {
         exportClient {
             client()
             systemProperty 'wiki_exporter.enabled', 'true'
-            // Optional
-            systemProperty 'wiki_exporter.config.path', file('path/to/file')
-            systemProperty 'wiki_exporter.output.path', file('path/to/dir')
+        }
+        exportServer {
+            server()
+            programArgument 'nogui'
+            systemProperty 'wiki_exporter.enabled', 'true'
         }
     }
 }
 ```
 
 ## Reference
+
+### Available modules
+
+| ID         | Description                                                                           | Side   |
+|------------|---------------------------------------------------------------------------------------|--------|
+| `render`   | Exports GUI renders of specified items/blocks                                         | CLIENT |
+| `metadata` | Exports item and block properties such as stack size, hardness, blast resistance etc. | SERVER |
 
 ### Available system properties
 

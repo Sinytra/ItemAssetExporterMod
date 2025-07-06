@@ -42,7 +42,7 @@ public class WikiDataExporter {
             .orElseGet(() -> Services.PLATFORM.getGameDirectory().resolve(DEFAULT_PATH));
 
         ExporterConfig.MainConfig mainConfig = ExporterConfig.preloadConfig(configPath);
-        Set<String> candidateModules = mainConfig.modules().keySet();
+        Set<String> candidateModules = mainConfig.enabled();
         LOGGER.info("Candidate modules: {}", candidateModules);
 
         Map<String, Class<?>> configTypes = new HashMap<>();
@@ -79,17 +79,23 @@ public class WikiDataExporter {
         ));
 
         CompletableFuture.allOf(FUTURES.values().toArray(new CompletableFuture[0]))
-            .thenRunAsync(() -> {
-                LOGGER.info("Finished running all modules, shutting down");
+            .thenRunAsync(() -> exit(isClient));
 
-                if (isClient) {
-                    WikiDataExporterClient.finishRunning();
-                } else if (server != null) {
-                    server.halt(false);
-                } else {
-                    System.exit(0);
-                }
-            });
+        if (FUTURES.isEmpty()) {
+            exit(isClient);
+        }
+    }
+
+    private static void exit(boolean isClient) {
+        LOGGER.info("Finished running all modules, shutting down");
+
+        if (isClient) {
+            WikiDataExporterClient.finishRunning();
+        } else if (server != null) {
+            server.halt(false);
+        } else {
+            System.exit(0);
+        }
     }
 
     public static void runModule(String name) {

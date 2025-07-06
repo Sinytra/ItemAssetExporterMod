@@ -15,14 +15,14 @@ public class WikiExporterMod {
         WikiDataExporter.initialize();
 
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
-        NeoForge.EVENT_BUS.addListener(this::onCommonSetup);
+        NeoForge.EVENT_BUS.addListener(this::onServerStarted);
     }
-    
+
     private void onServerStarting(ServerStartingEvent event) {
         WikiDataExporter.setServer(event.getServer());
     }
 
-    private void onCommonSetup(ServerStartedEvent event) {
+    private void onServerStarted(ServerStartedEvent event) {
         WikiDataExporter.runModule(WikiMetadataModuleFactory.NAME);
     }
 }

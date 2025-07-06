@@ -4,6 +4,10 @@ import net.minecraft.client.Minecraft;
 
 public class WikiDataExporterClient {
     public static void finishRunning() {
-        Minecraft.getInstance().stop();
+        if (Minecraft.getInstance() != null) {
+            Minecraft.getInstance().stop();
+        } else {
+            System.exit(0);
+        }
     }
 }
