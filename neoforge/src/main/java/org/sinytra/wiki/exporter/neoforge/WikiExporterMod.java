@@ -1,6 +1,8 @@
-package org.sinytra.wiki.exporter.render.platform;
+package org.sinytra.wiki.exporter.neoforge;
 
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -15,7 +17,10 @@ public class WikiExporterMod {
         WikiDataExporter.initialize();
 
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
-        NeoForge.EVENT_BUS.addListener(this::onServerStarted);
+
+        if (FMLEnvironment.dist == Dist.DEDICATED_SERVER) {
+            NeoForge.EVENT_BUS.addListener(this::onServerStarted);
+        }
     }
 
     private void onServerStarting(ServerStartingEvent event) {

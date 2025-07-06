@@ -33,17 +33,26 @@ loom {
             configName = "Fabric Client"
             ideConfigGenerated(true)
             runDir("runs/client")
-
-            property("wiki_exporter.render.namespaces", "minecraft")
-            property("wiki_exporter.render.outputs.gif", "true")
-            property("wiki_exporter.render.outputs.png", "true")
-            property("wiki_exporter.render.output", file("runs/client/.assets/item").absolutePath)
         }
         named("server") {
             server()
             configName = "Fabric Server"
             ideConfigGenerated(true)
             runDir("runs/server")
+        }
+
+        create("exportClient") {
+            client()
+            runDir("runs/client")
+            property("wiki_exporter.enabled", "true")
+            property("wiki_exporter.config.path", file("runs/wiki_exporter/config.json").absolutePath)
+        }
+        create("exportServer") {
+            server()
+            runDir("runs/server")
+            programArg("nogui")
+            property("wiki_exporter.enabled", "true")
+            property("wiki_exporter.config.path", file("runs/wiki_exporter/config.json").absolutePath)
         }
     }
 }

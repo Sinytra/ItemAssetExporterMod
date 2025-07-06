@@ -1,4 +1,4 @@
-package org.sinytra.wiki.exporter.render.platform;
+package org.sinytra.wiki.exporter.fabric;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;

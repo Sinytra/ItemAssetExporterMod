@@ -14,6 +14,11 @@
     "license": "${license}",
     "icon": "${mod_id}.png",
     "environment": "*",
+    "entrypoints": {
+        "main": [
+            "org.sinytra.wiki.exporter.fabric.WikiExporterEntrypoint"
+        ]
+    },
     "mixins": [
         "${mod_id}.mixins.json",
         "${mod_id}.render.mixins.json"

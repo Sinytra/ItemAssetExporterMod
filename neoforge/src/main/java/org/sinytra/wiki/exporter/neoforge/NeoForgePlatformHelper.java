@@ -1,4 +1,4 @@
-package org.sinytra.wiki.exporter.render.platform;
+package org.sinytra.wiki.exporter.neoforge;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
