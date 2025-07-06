@@ -1,0 +1,22 @@
+{
+  // Output base path, relative to the "run" directory
+  "output_path": "wiki_exporter",
+  // Enabled exporter modules
+  "enabled": [
+    "metadata",
+    "render"
+  ],
+  // Per-module config
+  "modules": {
+    "render": {
+      // In-game ID namespaces to export from
+      "namespaces": [
+        "minecraft"
+      ],
+      // Export file resolution in px
+      "resolution": 128,
+      // Enable static texture exports
+      "png": true
+    }
+  }
+}

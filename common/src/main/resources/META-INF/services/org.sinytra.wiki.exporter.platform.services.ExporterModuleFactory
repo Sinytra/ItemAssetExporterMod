@@ -1,0 +1,2 @@
+org.sinytra.wiki.exporter.metadata.WikiMetadataModuleFactory
+org.sinytra.wiki.exporter.render.WikiRenderModuleFactory

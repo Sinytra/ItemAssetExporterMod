@@ -12,7 +12,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.sinytra.wiki.exporter.Constants;
-import org.sinytra.wiki.exporter.platform.Services;
 import org.sinytra.wiki.exporter.platform.services.ExporterModule;
 
 import java.nio.file.Files;
@@ -24,52 +23,34 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class WikiExporterRenderer implements ExporterModule {
-    public static final ResourceLocation NAME = Constants.location("render");
+    private final WikiRenderModuleConfig config;
 
-    public static final String RENDER_PROPERTY = "wiki_exporter.render.namespaces";
-    public static final String OUTPUT_PROPERTY = "wiki_exporter.render.output";
-    public static final boolean PNGS = getBoolean("wiki_exporter.render.outputs.png", true);
-    //    public static final boolean ANIMATED_GIFS = getBoolean("wiki_exporter.render.outputs.gif", false);
-    private static final int RESOLUTION = 128;
-
-    @Override
-    public ResourceLocation getName() {
-        return NAME;
+    public WikiExporterRenderer(WikiRenderModuleConfig config) {
+        this.config = config;
     }
 
     @Override
-    public boolean isEnabled() {
-        return shouldRender();
-    }
-
-    @Override
-    public void run() {
+    public void run(Path output) {
         List<Pair<ResourceLocation, Item>> renderable = getRenderableItems();
         if (!renderable.isEmpty()) {
-            String outputProperty = System.getProperty(OUTPUT_PROPERTY);
-            Path path = outputProperty != null ? Path.of(outputProperty) : Services.PLATFORM.getGameDirectory();
-
+            
             renderable.stream()
                 .map(p -> p.getFirst().getNamespace())
                 .forEach(n -> {
                     try {
-                        Files.createDirectories(path.resolve(n));
+                        Files.createDirectories(output.resolve(n));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 });
 
             Constants.LOG.info("Rendering {} items", renderable.size());
-            renderItems(renderable, path).join();
+            renderItems(renderable, output).join();
         }
     }
 
-    public static boolean shouldRender() {
-        return System.getProperty(RENDER_PROPERTY) != null;
-    }
-
-    private static List<Pair<ResourceLocation, Item>> getRenderableItems() {
-        Set<String> namespaces = Set.of(System.getProperty(RENDER_PROPERTY).split(","));
+    private List<Pair<ResourceLocation, Item>> getRenderableItems() {
+        Set<String> namespaces = this.config.namespaces();
         if (namespaces.isEmpty()) {
             return List.of();
         }
@@ -87,8 +68,9 @@ public class WikiExporterRenderer implements ExporterModule {
         return list;
     }
 
-    private static CompletableFuture<?> renderItems(List<Pair<ResourceLocation, Item>> renderable, Path root) {
-        RenderTarget target = new TextureTarget("Wiki Exporter", RESOLUTION, RESOLUTION, true);
+    private CompletableFuture<?> renderItems(List<Pair<ResourceLocation, Item>> renderable, Path root) {
+        int resolution = this.config.resolution();
+        RenderTarget target = new TextureTarget("Wiki Exporter", resolution, resolution, true);
         MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
         SimpleItemRenderer renderer = new SimpleItemRenderer(target, bufferSource, 32);
 
@@ -105,12 +87,12 @@ public class WikiExporterRenderer implements ExporterModule {
         return CompletableFuture.allOf(list.toArray(CompletableFuture[]::new));
     }
 
-    private static void scheduleRender(ItemStack stack, RenderTarget target, SimpleItemRenderer renderer, Path output) {
-        if (PNGS) {
+    private void scheduleRender(ItemStack stack, RenderTarget target, SimpleItemRenderer renderer, Path output) {
+        if (this.config.png()) {
             exportRenderItem(output, target, renderer, stack);
         }
 
-//        if (ANIMATED_GIFS) {
+//        if (this.config.gif()) {
 //            var frames = renderable.getAnimationTicks();
 //            if (frames > 1) {
 //                var other = ImageIO.save(
@@ -136,9 +118,5 @@ public class WikiExporterRenderer implements ExporterModule {
         renderer.renderItem(stack);
 
         ImageWriter.writeAsPNG(root, name.getPath(), target.getColorTexture(), true);
-    }
-
-    private static boolean getBoolean(String name, boolean def) {
-        return Boolean.parseBoolean(System.getProperty(name, String.valueOf(def)));
     }
 }

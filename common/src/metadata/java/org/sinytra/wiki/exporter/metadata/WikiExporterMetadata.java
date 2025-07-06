@@ -1,60 +1,78 @@
 package org.sinytra.wiki.exporter.metadata;
 
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.material.MapColor;
-import org.sinytra.wiki.exporter.Constants;
-import org.sinytra.wiki.exporter.platform.Services;
+import net.minecraft.world.level.block.state.BlockState;
 import org.sinytra.wiki.exporter.platform.services.ExporterModule;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 public class WikiExporterMetadata implements ExporterModule {
-    public static final ResourceLocation NAME = Constants.location("metadata");
-
-    private static final String EXPORT_PROPERTY = "wiki_exporter.metadata.namespaces";
-    private static final String OUTPUT_PROPERTY = "wiki_exporter.metadata.output";
-
     @Override
-    public ResourceLocation getName() {
-        return NAME;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return false;
-    }
-
-    @Override
-    public void run() {
-        String outputProperty = System.getProperty(OUTPUT_PROPERTY);
-        Path path = outputProperty != null ? Path.of(outputProperty) : Services.PLATFORM.getGameDirectory().resolve("wiki_exporter");
-        try {
-            Files.createDirectories(path);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
+    public void run(Path output) throws Exception {
+        Map<String, BlockMetadata> metadata = new HashMap<>();
         for (Block block : BuiltInRegistries.BLOCK) {
-            getBlockMetadata(block);
+            BlockMetadata data = getBlockMetadata(block);
+            if (data == null) {
+                continue;
+            }
+            String name = block.builtInRegistryHolder().key().location().toString();
+            metadata.put(name, data);
         }
+
+        Gson gson = new GsonBuilder()
+            .setPrettyPrinting()
+            .disableHtmlEscaping()
+            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+            .create();
+
+        String content = gson.toJson(metadata);
+
+        Files.writeString(output.resolve("metadata.json"), content, StandardCharsets.UTF_8);
     }
 
     record BlockMetadata(
         int stackSize,
-        ItemStack requiredTool,
-        double blastResistance,
-        double hardness,
-        boolean flammable,
-        MapColor mapColor
+        String requiredTool,
+        float blastResistance,
+        Float hardness,
+        boolean flammable
     ) {
     }
 
     private static BlockMetadata getBlockMetadata(Block block) {
-        ItemStack effectiveTool = ToolTierDictionary.getEffectiveTool(block.defaultBlockState());
-        return null;
+        BlockState state = block.defaultBlockState();
+        ItemStack effectiveTool = ToolTierDictionary.getEffectiveTool(state);
+        String effectiveToolId = effectiveTool.isEmpty() ? null : effectiveTool.getItemHolder().unwrapKey().map(key -> key.location().toString()).orElse(null);
+        
+        Item item = block.asItem();
+        if (item == Items.AIR) {
+            return null;
+        }
+        ItemStack stack = new ItemStack(item);
+
+        Float destroySpeed = null;
+        try {
+            destroySpeed = state.getDestroySpeed(null, null);
+        } catch (Exception ignored) {
+        }
+
+        return new BlockMetadata(
+            stack.getMaxStackSize(),
+            effectiveToolId,
+            block.getExplosionResistance(),
+            destroySpeed,
+            state.ignitedByLava()
+        );
     }
 }

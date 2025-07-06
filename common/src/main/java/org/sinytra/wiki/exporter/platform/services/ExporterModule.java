@@ -1,11 +1,7 @@
 package org.sinytra.wiki.exporter.platform.services;
 
-import net.minecraft.resources.ResourceLocation;
+import java.nio.file.Path;
 
 public interface ExporterModule {
-    ResourceLocation getName();
-
-    boolean isEnabled();
-
-    void run();
+    void run(Path output) throws Exception;
 }

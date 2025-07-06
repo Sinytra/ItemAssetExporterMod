@@ -1,5 +1,6 @@
 package org.sinytra.wiki.exporter.render.platform;
 
+import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import org.sinytra.wiki.exporter.platform.services.IPlatformHelper;
 
@@ -9,5 +10,10 @@ public class FabricPlatformHelper implements IPlatformHelper {
     @Override
     public Path getGameDirectory() {
         return FabricLoader.getInstance().getGameDir();
+    }
+
+    @Override
+    public boolean isClient() {
+        return FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT;
     }
 }

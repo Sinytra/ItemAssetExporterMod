@@ -29,10 +29,8 @@ neoForge {
         }
         create("client") {
             client()
-            systemProperty("wiki_exporter.render.namespaces", "minecraft")
-//            systemProperty("wiki_exporter.render.outputs.gif", "true")
-            systemProperty("wiki_exporter.render.outputs.png", "true")
-            systemProperty("wiki_exporter.render.output", file("run/wiki_exporter/").absolutePath)
+
+            systemProperty("wiki_exporter.enabled", "true")
         }
         create("data") {
             clientData()
@@ -41,6 +39,10 @@ neoForge {
             server()
 
             programArgument("nogui")
+
+            systemProperty("wiki_exporter.modules.enabled", "metadata")
+            systemProperty("wiki_exporter.metadata.namespaces", "minecraft")
+            systemProperty("wiki_exporter.metadata.output", file("run/wiki_exporter/").absolutePath)
         }
     }
     mods {
