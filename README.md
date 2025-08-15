@@ -116,8 +116,9 @@ neoForge {
 
 ### Available system properties
 
-| Name                        | Description                             | Default value                     |
-|-----------------------------|-----------------------------------------|-----------------------------------|
-| `wiki_exporter.enabled`     | Enable exporter                         | `false`                           |
-| `wiki_exporter.config.path` | Path to exporter configuration file.    | `<run>/wiki_exporter/config.json` |
-| `wiki_exporter.output.path` | Path to exporter base output directory. | `<run>/wiki_exporter/output`      |
+| Name                                      | Description                             | Default value                     |
+|-------------------------------------------|-----------------------------------------|-----------------------------------|
+| `wiki_exporter.enabled`                   | Enable exporter                         | `false`                           |
+| `wiki_exporter.config.path`               | Path to exporter configuration file.    | `<run>/wiki_exporter/config.json` |
+| `wiki_exporter.output.path`               | Path to exporter base output directory. | `<run>/wiki_exporter/output`      |
+| `wiki_exporter.module.<name>.output.path` | Per-module output directory override.   | -                                 |

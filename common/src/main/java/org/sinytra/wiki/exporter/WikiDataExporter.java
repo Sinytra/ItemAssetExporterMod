@@ -104,7 +104,9 @@ public class WikiDataExporter {
                 CompletableFuture<Void> future = FUTURES.get(name);
 
                 try {
-                    Path moduleOutputPath = outputPath.resolve(name);
+                    Path moduleOutputPath = Optional.ofNullable(System.getProperty("wiki_exporter.module." + name + ".output.path"))
+                        .map(Path::of)
+                        .orElseGet(() -> outputPath.resolve(name));
                     Files.createDirectories(moduleOutputPath);
 
                     module.instance().run(moduleOutputPath);
