@@ -4,6 +4,42 @@ A minimal mod to render and export item assets and other useful information from
 
 Made for [Modded Minecraft Wiki](https://moddedmc.wiki) authors.
 
+## Installation
+
+```groovy
+repositories {
+    maven {
+        url "https://maven.sinytra.org"
+    }
+}
+
+dependencies {
+    // ModDevGradle
+    // Version list: https://maven.sinytra.org/org/sinytra/wiki-exporter-neoforge
+    runtimeOnly "org.sinytra:wiki-exporter-neoforge:<version>"
+
+    // Fabric Loom
+    // Version list: https://maven.sinytra.org/org/sinytra/wiki-exporter-fabric
+    modRuntimeOnly "org.sinytra:wiki-exporter-fabric:<version>"
+}
+```
+
+<details>
+<summary>See instructions for 1.21.4 and below</summary>
+
+```groovy
+dependencies {
+    // ModDevGradle
+    // Version list: https://maven.sinytra.org/org/sinytra/item-asset-export-neoforge
+    runtimeOnly "org.sinytra:item-asset-export-neoforge:<version>"
+
+    // Fabric Loom
+    // Version list: https://maven.sinytra.org/org/sinytra/item-asset-export-fabric
+    modRuntimeOnly "org.sinytra:item-asset-export-fabric:<version>"
+}
+```
+</details>
+
 ## Usage
 
 ### Configure the exporter
@@ -12,7 +48,7 @@ The exporter is configured using a JSON file following the format described in `
 When copying this file, please remove the comments and use the `.json` extension instead.
 
 By default, the exporter will look for the configuration file at `run/wiki_exporter/config.json`, but you can define
-your own file path using the `wiki_exporter.output.path` system property. See below for details.
+your own file path using the `wiki_exporter.config.path` system property. See below for details.
 
 Example configuration:
 

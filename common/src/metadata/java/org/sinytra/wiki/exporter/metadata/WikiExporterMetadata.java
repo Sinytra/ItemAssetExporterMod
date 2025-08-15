@@ -55,7 +55,7 @@ public class WikiExporterMetadata implements ExporterModule {
 
         String content = gson.toJson(metadata);
 
-        Files.writeString(output.resolve("metadata.json"), content, StandardCharsets.UTF_8);
+        Files.writeString(output.resolve("properties.json"), content, StandardCharsets.UTF_8);
     }
 
     record BlockMetadata(
