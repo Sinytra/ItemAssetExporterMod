@@ -23,9 +23,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class WikiExporterRenderer implements ExporterModule {
+    private final Set<String> namespaces;
     private final WikiRenderModuleConfig config;
 
-    public WikiExporterRenderer(WikiRenderModuleConfig config) {
+    public WikiExporterRenderer(Set<String> namespaces, WikiRenderModuleConfig config) {
+        this.namespaces = namespaces;
         this.config = config;
     }
 
@@ -50,17 +52,16 @@ public class WikiExporterRenderer implements ExporterModule {
     }
 
     private List<Pair<ResourceLocation, Item>> getRenderableItems() {
-        Set<String> namespaces = this.config.namespaces();
-        if (namespaces.isEmpty()) {
+        if (this.namespaces.isEmpty()) {
             return List.of();
         }
 
-        Constants.LOG.info("Rendering items for namespaces {}", namespaces);
+        Constants.LOG.info("Rendering items for namespaces {}", this.namespaces);
 
         List<Pair<ResourceLocation, Item>> list = new ArrayList<>();
         for (Map.Entry<ResourceKey<Item>, Item> entry : BuiltInRegistries.ITEM.entrySet()) {
             ResourceLocation name = entry.getKey().location();
-            if (namespaces.contains(name.getNamespace())) {
+            if (this.namespaces.contains(name.getNamespace())) {
                 list.add(Pair.of(name, entry.getValue()));
             }
         }

@@ -1,6 +1,7 @@
 package org.sinytra.wiki.exporter.platform.services;
 
 import org.jetbrains.annotations.Nullable;
+import org.sinytra.wiki.exporter.ExportContext;
 
 public interface ExporterModuleFactory<T> {
     String name();
@@ -14,5 +15,9 @@ public interface ExporterModuleFactory<T> {
         return null;
     }
 
-    ExporterModule create(@Nullable T config);
+    default boolean requiresConfig() {
+        return true;
+    }
+
+    ExporterModule create(ExportContext context, @Nullable T config);
 }

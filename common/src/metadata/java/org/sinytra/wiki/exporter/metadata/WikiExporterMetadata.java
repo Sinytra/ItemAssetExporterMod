@@ -18,17 +18,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class WikiExporterMetadata implements ExporterModule {
-    private final WikiMetadataModuleConfig config;
+    private final Set<String> namespaces;
 
-    public WikiExporterMetadata(WikiMetadataModuleConfig config) {
-        this.config = config;
+    public WikiExporterMetadata(Set<String> namespaces) {
+        this.namespaces = namespaces;
     }
 
     @Override
     public void run(Path output) throws Exception {
-        if (this.config.namespaces() == null) {
+        if (this.namespaces.isEmpty()) {
             return;
         }
 
@@ -36,7 +37,7 @@ public class WikiExporterMetadata implements ExporterModule {
         for (Map.Entry<ResourceKey<Block>, Block> entry : BuiltInRegistries.BLOCK.entrySet()) {
             ResourceLocation name = entry.getKey().location();
             Block block = entry.getValue();
-            if (!this.config.namespaces().contains(name.getNamespace())) {
+            if (!this.namespaces.contains(name.getNamespace())) {
                 continue;
             }
 

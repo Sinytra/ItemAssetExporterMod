@@ -1,5 +1,7 @@
 package org.sinytra.wiki.exporter.render;
 
+import org.sinytra.wiki.exporter.NamespacedModuleConfig;
+
 import java.util.Set;
 
 public record WikiRenderModuleConfig(
@@ -7,5 +9,5 @@ public record WikiRenderModuleConfig(
     int resolution,
     boolean png,
     boolean gif
-) {
+) implements NamespacedModuleConfig {
 }
