@@ -1,6 +1,7 @@
 package org.sinytra.wiki.exporter.render;
 
 import org.jetbrains.annotations.Nullable;
+import org.sinytra.wiki.exporter.ExportContext;
 import org.sinytra.wiki.exporter.platform.services.ExporterModule;
 import org.sinytra.wiki.exporter.platform.services.ExporterModuleFactory;
 
@@ -24,7 +25,7 @@ public class WikiRenderModuleFactory implements ExporterModuleFactory<WikiRender
     }
 
     @Override
-    public ExporterModule create(WikiRenderModuleConfig config) {
-        return new WikiExporterRenderer(config);
+    public ExporterModule create(ExportContext context, WikiRenderModuleConfig config) {
+        return new WikiExporterRenderer(context.namespaces(), config);
     }
 }

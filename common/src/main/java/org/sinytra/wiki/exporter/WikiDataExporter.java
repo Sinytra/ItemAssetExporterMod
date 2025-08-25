@@ -9,10 +9,7 @@ import org.slf4j.Logger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class WikiDataExporter {
@@ -45,15 +42,11 @@ public class WikiDataExporter {
         Set<String> candidateModules = mainConfig.enabled();
         LOGGER.info("Candidate modules: {}", candidateModules);
 
-        Map<String, Class<?>> configTypes = new HashMap<>();
         Map<String, ExporterModuleFactory<?>> enabledFactories = new HashMap<>();
         Services.MODULE_FACTORIES.stream()
             .filter(m -> candidateModules.contains(m.name()) && m.isEnabled(isClient))
-            .forEach(factory -> {
-                enabledFactories.put(factory.name(), factory);
-                configTypes.put(factory.name(), factory.getConfigClass());
-            });
-        ExporterConfig.LoadedConfig config = ExporterConfig.load(mainConfig, configTypes);
+            .forEach(factory -> enabledFactories.put(factory.name(), factory));
+        ExporterConfig.LoadedConfig config = ExporterConfig.load(mainConfig, enabledFactories);
 
         outputPath = Optional.ofNullable(mainConfig.outputPath())
             .or(() -> Optional.ofNullable(System.getProperty(EXPORTER_OUTPUT_PROPERTY)))
@@ -65,9 +58,15 @@ public class WikiDataExporter {
             LOGGER.error("Error preparing output directory", e);
         }
 
+        Set<String> globalNamespaces = config.global().namespaces();
+
         enabledFactories.forEach((name, factory) -> {
             Object moduleConfig = config.getForModule(name);
-            ModuleInstance instance = new ModuleInstance(factory, ((ExporterModuleFactory) factory).create(moduleConfig));
+            Set<String> moduleNamespaces = moduleConfig instanceof NamespacedModuleConfig nc
+                ? Objects.requireNonNullElse(nc.namespaces(), globalNamespaces) : globalNamespaces;
+            ExportContext context = new ExportContext(moduleNamespaces);
+
+            ModuleInstance instance = new ModuleInstance(factory, ((ExporterModuleFactory) factory).create(context, moduleConfig));
             MODULES.put(factory.name(), instance);
         });
 
@@ -116,7 +115,7 @@ public class WikiDataExporter {
                         future.complete(null);
                     }
                 } catch (Exception e) {
-                    LOGGER.info("Error running module {}: {}", module.factory().name(), e);
+                    LOGGER.info("Error running module {}", module.factory().name(), e);
                     if (future != null) {
                         future.completeExceptionally(e);
                     }

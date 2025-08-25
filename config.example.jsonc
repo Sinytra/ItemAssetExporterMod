@@ -6,17 +6,18 @@
     "metadata",
     "render"
   ],
+  // In-game ID namespaces to export from. Can be overriden in per-module configs
+  "namespaces": [
+    "minecraft"
+  ],
   // Per-module config
   "modules": {
     "render": {
-      // In-game ID namespaces to export from
-      "namespaces": [
-        "minecraft"
-      ],
       // Export file resolution in px
       "resolution": 128,
       // Enable static texture exports
       "png": true
-    }
+    },
+    "metadata": {}
   }
 }

@@ -3,6 +3,7 @@ package org.sinytra.wiki.exporter;
 import com.google.gson.*;
 import com.mojang.logging.LogUtils;
 import org.jetbrains.annotations.Nullable;
+import org.sinytra.wiki.exporter.platform.services.ExporterModuleFactory;
 import org.slf4j.Logger;
 
 import java.io.Reader;
@@ -21,6 +22,7 @@ public class ExporterConfig {
     public record MainConfig(
         @Nullable String outputPath,
         @Nullable Set<String> enabled,
+        @Nullable Set<String> namespaces,
         @Nullable Map<String, JsonElement> modules
     ) {}
 
@@ -41,26 +43,35 @@ public class ExporterConfig {
             root = GSON.fromJson(reader, JsonElement.class).getAsJsonObject();
         } catch (Exception e) {
             LOGGER.error("Error reading exporter config", e);
-            return new MainConfig(null, Set.of(), Map.of());
+            return new MainConfig(null, Set.of(), Set.of(), Map.of());
         }
 
         MainConfig parsed = GSON.fromJson(root, MainConfig.class);
         return new MainConfig(
             parsed.outputPath(),
             parsed.enabled() != null ? parsed.enabled() : Set.of(),
+            parsed.namespaces() != null ? parsed.namespaces() : Set.of(),
             parsed.modules() != null ? parsed.modules() : Map.of()
         );
     }
 
-    public static LoadedConfig load(MainConfig mainConfig, Map<String, Class<?>> modules) {
+    public static LoadedConfig load(MainConfig mainConfig, Map<String, ExporterModuleFactory<?>> factories) {
         Map<String, Object> moduleConfig = new HashMap<>();
 
         if (mainConfig.modules() != null) {
-            modules.forEach((k, v) -> {
-                if (v != null && mainConfig.modules().containsKey(k)) {
+            factories.forEach((k, factory) -> {
+                Class<?> configClass = factory.getConfigClass();
+                if (configClass != null) {
+                    if (!mainConfig.modules().containsKey(k)) {
+                        if (factory.requiresConfig()) {
+                            throw new IllegalStateException("Missing exporter config entry for module '%s'".formatted(k));
+                        }
+                        return;
+                    }
+
                     try {
                         JsonElement moduleRoot = mainConfig.modules().get(k);
-                        Object instance = GSON.fromJson(moduleRoot, v);
+                        Object instance = GSON.fromJson(moduleRoot, configClass);
                         moduleConfig.put(k, instance);
                     } catch (Exception e) {
                         LOGGER.error("Error reading exporter module config for {}", k, e);

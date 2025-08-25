@@ -1,6 +1,7 @@
 package org.sinytra.wiki.exporter.metadata;
 
 import org.jetbrains.annotations.Nullable;
+import org.sinytra.wiki.exporter.ExportContext;
 import org.sinytra.wiki.exporter.platform.services.ExporterModule;
 import org.sinytra.wiki.exporter.platform.services.ExporterModuleFactory;
 
@@ -24,7 +25,12 @@ public class WikiMetadataModuleFactory implements ExporterModuleFactory<WikiMeta
     }
 
     @Override
-    public ExporterModule create(WikiMetadataModuleConfig config) {
-        return new WikiExporterMetadata(config);
+    public boolean requiresConfig() {
+        return false;
+    }
+
+    @Override
+    public ExporterModule create(ExportContext context, WikiMetadataModuleConfig config) {
+        return new WikiExporterMetadata(context.namespaces());
     }
 }
