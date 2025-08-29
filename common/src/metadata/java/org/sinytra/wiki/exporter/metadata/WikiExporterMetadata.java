@@ -1,26 +1,47 @@
 package org.sinytra.wiki.exporter.metadata;
 
+import com.google.common.base.Suppliers;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.item.component.Tool;
+import net.minecraft.world.item.enchantment.Enchantable;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 import org.sinytra.wiki.exporter.platform.services.ExporterModule;
+import org.sinytra.wiki.exporter.util.EnumToLowerCaseJsonConverter;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 public class WikiExporterMetadata implements ExporterModule {
+    private static final Supplier<AttributeSupplier> PLAYER_ATTRIBUTES = Suppliers.memoize(() -> Player.createAttributes().build());
+
     private final Set<String> namespaces;
 
     public WikiExporterMetadata(Set<String> namespaces) {
@@ -33,7 +54,7 @@ public class WikiExporterMetadata implements ExporterModule {
             return;
         }
 
-        Map<String, BlockMetadata> metadata = new HashMap<>();
+        Map<String, Object> metadata = new HashMap<>();
         for (Map.Entry<ResourceKey<Block>, Block> entry : BuiltInRegistries.BLOCK.entrySet()) {
             ResourceLocation name = entry.getKey().location();
             Block block = entry.getValue();
@@ -48,10 +69,25 @@ public class WikiExporterMetadata implements ExporterModule {
             metadata.put(name.toString(), data);
         }
 
+        for (Map.Entry<ResourceKey<Item>, Item> entry : BuiltInRegistries.ITEM.entrySet()) {
+            ResourceLocation name = entry.getKey().location();
+            Item block = entry.getValue();
+            if (!this.namespaces.contains(name.getNamespace())) {
+                continue;
+            }
+
+            ItemMetadata data = getItemMetadata(block);
+            if (data == null) {
+                continue;
+            }
+            metadata.put(name.toString(), data);
+        }
+
         Gson gson = new GsonBuilder()
             .setPrettyPrinting()
             .disableHtmlEscaping()
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+            .registerTypeHierarchyAdapter(Enum.class, new EnumToLowerCaseJsonConverter())
             .create();
 
         String content = gson.toJson(metadata);
@@ -68,11 +104,26 @@ public class WikiExporterMetadata implements ExporterModule {
     ) {
     }
 
+    record ItemMetadata(
+        // Generic
+        int stackSize,
+        Rarity rarity,
+        // Tools
+        Integer durability,
+        Float miningSpeed,
+        Float attackDamage,
+        Float attackSpeed,
+        Integer enchantability,
+        // Food
+        Integer nutrition
+    ) {
+    }
+
     private static BlockMetadata getBlockMetadata(Block block) {
         BlockState state = block.defaultBlockState();
         ItemStack effectiveTool = ToolTierDictionary.getEffectiveTool(state);
         String effectiveToolId = effectiveTool.isEmpty() ? null : effectiveTool.getItemHolder().unwrapKey().map(key -> key.location().toString()).orElse(null);
-        
+
         Item item = block.asItem();
         if (item == Items.AIR) {
             return null;
@@ -92,5 +143,83 @@ public class WikiExporterMetadata implements ExporterModule {
             destroySpeed,
             state.ignitedByLava()
         );
+    }
+
+    private static ItemMetadata getItemMetadata(Item item) {
+        ItemStack stack = item.getDefaultInstance();
+
+        // Common
+        Integer maxStackSize = stack.getMaxStackSize();
+        Rarity rarity = stack.getRarity();
+
+        // Food
+        FoodProperties food = stack.get(DataComponents.FOOD);
+        Integer nutrition = food != null ? food.nutrition() : null;
+
+        // Tools
+        Tool tool = stack.get(DataComponents.TOOL);
+        Integer durability = stack.getMaxDamage() == 0 ? null : stack.getMaxDamage();
+        Float miningSpeed = tool != null ? tool.rules().stream()
+            .map(Tool.Rule::speed).filter(Optional::isPresent).map(Optional::get)
+            .findFirst()
+            .orElse(null)
+            : null;
+        Enchantable enchantable = stack.get(DataComponents.ENCHANTABLE);
+        Integer enchantability = enchantable != null ? enchantable.value() : null;
+
+        // Weapons
+        Float attackDamage = computeAttributeModifierValue(stack, Attributes.ATTACK_DAMAGE, Item.BASE_ATTACK_DAMAGE_ID);
+        Float attackSpeed = computeAttributeModifierValue(stack, Attributes.ATTACK_SPEED, Item.BASE_ATTACK_SPEED_ID);
+
+        return new ItemMetadata(
+            // Common
+            maxStackSize,
+            rarity,
+            // Tools
+            durability,
+            miningSpeed,
+            // Weapons
+            attackDamage,
+            attackSpeed,
+            enchantability,
+            // Food
+            nutrition
+        );
+    }
+
+    @Nullable
+    private static Float computeAttributeModifierValue(ItemStack stack, Holder<Attribute> attribute, ResourceLocation id) {
+        ItemAttributeModifiers modifiers = stack.get(DataComponents.ATTRIBUTE_MODIFIERS);
+        if (modifiers != null) {
+            double playerBase = PLAYER_ATTRIBUTES.get().getBaseValue(attribute);
+
+            AtomicBoolean found = new AtomicBoolean(false);
+            AtomicReference<Double> base = new AtomicReference<>(playerBase);
+            AtomicReference<Double> amt = new AtomicReference<>(base.get());
+
+            modifiers.forEach(EquipmentSlot.MAINHAND, (a, m) -> {
+                if (m.id().equals(id)) {
+                    found.set(true);
+
+                    switch (m.operation()) {
+                        case ADD_VALUE:
+                            base.set(amt.updateAndGet(d -> d + m.amount()));
+                            break;
+                        case ADD_MULTIPLIED_BASE:
+                            amt.updateAndGet(d -> m.amount() * base.get());
+                            break;
+                        case ADD_MULTIPLIED_TOTAL:
+                            amt.updateAndGet(d -> d * (1 + m.amount()));
+                            break;
+                    }
+                }
+            });
+
+            if (found.get()) {
+                float raw = amt.get().floatValue();
+                return Math.round(raw * 10) / 10.0f;
+            }
+        }
+        return null;
     }
 }
