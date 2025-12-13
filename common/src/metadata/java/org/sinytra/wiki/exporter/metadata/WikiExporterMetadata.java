@@ -8,7 +8,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -56,7 +56,7 @@ public class WikiExporterMetadata implements ExporterModule {
 
         Map<String, Object> metadata = new HashMap<>();
         for (Map.Entry<ResourceKey<Block>, Block> entry : BuiltInRegistries.BLOCK.entrySet()) {
-            ResourceLocation name = entry.getKey().location();
+            Identifier name = entry.getKey().identifier();
             Block block = entry.getValue();
             if (!this.namespaces.contains(name.getNamespace())) {
                 continue;
@@ -70,7 +70,7 @@ public class WikiExporterMetadata implements ExporterModule {
         }
 
         for (Map.Entry<ResourceKey<Item>, Item> entry : BuiltInRegistries.ITEM.entrySet()) {
-            ResourceLocation name = entry.getKey().location();
+            Identifier name = entry.getKey().identifier();
             Item block = entry.getValue();
             if (!this.namespaces.contains(name.getNamespace())) {
                 continue;
@@ -122,7 +122,7 @@ public class WikiExporterMetadata implements ExporterModule {
     private static BlockMetadata getBlockMetadata(Block block) {
         BlockState state = block.defaultBlockState();
         ItemStack effectiveTool = ToolTierDictionary.getEffectiveTool(state);
-        String effectiveToolId = effectiveTool.isEmpty() ? null : effectiveTool.getItemHolder().unwrapKey().map(key -> key.location().toString()).orElse(null);
+        String effectiveToolId = effectiveTool.isEmpty() ? null : effectiveTool.getItemHolder().unwrapKey().map(key -> key.identifier().toString()).orElse(null);
 
         Item item = block.asItem();
         if (item == Items.AIR) {
@@ -188,7 +188,7 @@ public class WikiExporterMetadata implements ExporterModule {
     }
 
     @Nullable
-    private static Float computeAttributeModifierValue(ItemStack stack, Holder<Attribute> attribute, ResourceLocation id) {
+    private static Float computeAttributeModifierValue(ItemStack stack, Holder<Attribute> attribute, Identifier id) {
         ItemAttributeModifiers modifiers = stack.get(DataComponents.ATTRIBUTE_MODIFIERS);
         if (modifiers != null) {
             double playerBase = PLAYER_ATTRIBUTES.get().getBaseValue(attribute);

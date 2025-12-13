@@ -18,7 +18,7 @@ public class WikiExporterMod {
 
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
 
-        if (FMLEnvironment.dist == Dist.DEDICATED_SERVER) {
+        if (FMLEnvironment.getDist() == Dist.DEDICATED_SERVER) {
             NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         }
     }

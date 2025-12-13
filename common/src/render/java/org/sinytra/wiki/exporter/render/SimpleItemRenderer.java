@@ -8,6 +8,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.item.TrackingItemStackRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -25,11 +30,13 @@ public class SimpleItemRenderer {
     private final RenderTarget renderTarget;
     private final MultiBufferSource.BufferSource bufferSource;
     private final int scale;
+    private final ItemModelResolver resolver;
 
     public SimpleItemRenderer(RenderTarget renderTarget, MultiBufferSource.BufferSource bufferSource, int scale) {
         this.renderTarget = renderTarget;
         this.bufferSource = bufferSource;
         this.scale = scale;
+        this.resolver = new ItemModelResolver(Minecraft.getInstance().getModelManager());
     }
 
     public void renderItem(ItemStack stack) {
@@ -55,18 +62,11 @@ public class SimpleItemRenderer {
         poseStack.translate(scale / 2.0F, scale / 2.0F, 0.0F);
         poseStack.scale(scale, -scale, scale);
 
-        minecraft
-            .getItemRenderer()
-            .renderStatic(
-                stack,
-                context,
-                PACKED_LIGHT,
-                OverlayTexture.NO_OVERLAY,
-                poseStack,
-                this.bufferSource,
-                null,
-                0
-            );
+        ItemStackRenderState state = new ItemStackRenderState();
+        this.resolver.updateForTopItem(state, stack, context, null, null, 0);
+        SubmitNodeCollector storage = minecraft.gameRenderer.getSubmitNodeStorage();
+        state.submit(poseStack, storage, PACKED_LIGHT, OverlayTexture.NO_OVERLAY, 0);
+        minecraft.gameRenderer.getFeatureRenderDispatcher().renderAllFeatures();
         this.bufferSource.endBatch();
 
         RenderSystem.outputColorTextureOverride = null;

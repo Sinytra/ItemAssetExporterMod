@@ -8,7 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.sinytra.wiki.exporter.Constants;
@@ -33,7 +33,7 @@ public class WikiExporterRenderer implements ExporterModule {
 
     @Override
     public void run(Path output) {
-        List<Pair<ResourceLocation, Item>> renderable = getRenderableItems();
+        List<Pair<Identifier, Item>> renderable = getRenderableItems();
         if (!renderable.isEmpty()) {
             
             renderable.stream()
@@ -51,16 +51,16 @@ public class WikiExporterRenderer implements ExporterModule {
         }
     }
 
-    private List<Pair<ResourceLocation, Item>> getRenderableItems() {
+    private List<Pair<Identifier, Item>> getRenderableItems() {
         if (this.namespaces.isEmpty()) {
             return List.of();
         }
 
         Constants.LOG.info("Rendering items for namespaces {}", this.namespaces);
 
-        List<Pair<ResourceLocation, Item>> list = new ArrayList<>();
+        List<Pair<Identifier, Item>> list = new ArrayList<>();
         for (Map.Entry<ResourceKey<Item>, Item> entry : BuiltInRegistries.ITEM.entrySet()) {
-            ResourceLocation name = entry.getKey().location();
+            Identifier name = entry.getKey().identifier();
             if (this.namespaces.contains(name.getNamespace())) {
                 list.add(Pair.of(name, entry.getValue()));
             }
@@ -69,7 +69,7 @@ public class WikiExporterRenderer implements ExporterModule {
         return list;
     }
 
-    private CompletableFuture<?> renderItems(List<Pair<ResourceLocation, Item>> renderable, Path root) {
+    private CompletableFuture<?> renderItems(List<Pair<Identifier, Item>> renderable, Path root) {
         int resolution = this.config.resolution();
         RenderTarget target = new TextureTarget("Wiki Exporter", resolution, resolution, true);
         MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
@@ -77,7 +77,7 @@ public class WikiExporterRenderer implements ExporterModule {
 
         List<CompletableFuture<?>> list = renderable.stream()
             .<CompletableFuture<?>>map(p -> {
-                ResourceLocation location = p.getFirst();
+                Identifier location = p.getFirst();
                 ItemStack stack = new ItemStack(p.getSecond());
                 Path output = root.resolve(location.getNamespace());
 
@@ -110,7 +110,7 @@ public class WikiExporterRenderer implements ExporterModule {
     }
 
     private static void exportRenderItem(Path root, RenderTarget target, SimpleItemRenderer renderer, ItemStack stack) {
-        ResourceLocation name = stack.getItem().builtInRegistryHolder().key().location();
+        Identifier name = stack.getItem().builtInRegistryHolder().key().identifier();
 
         RenderSystem.getDevice()
             .createCommandEncoder()
