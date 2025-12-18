@@ -24,22 +24,6 @@ dependencies {
 }
 ```
 
-<details>
-<summary>See instructions for 1.21.4 and below</summary>
-
-```groovy
-dependencies {
-    // ModDevGradle
-    // Version list: https://maven.sinytra.org/org/sinytra/item-asset-export-neoforge
-    runtimeOnly "org.sinytra:item-asset-export-neoforge:<version>"
-
-    // Fabric Loom
-    // Version list: https://maven.sinytra.org/org/sinytra/item-asset-export-fabric
-    modRuntimeOnly "org.sinytra:item-asset-export-fabric:<version>"
-}
-```
-</details>
-
 ## Usage
 
 ### Configure the exporter
