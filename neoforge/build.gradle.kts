@@ -30,17 +30,10 @@ neoForge {
         create("client") {
             client()
         }
-        create("data") {
-            clientData()
-        }
         create("server") {
             server()
 
             programArgument("nogui")
-
-            systemProperty("wiki_exporter.modules.enabled", "metadata")
-            systemProperty("wiki_exporter.metadata.namespaces", "minecraft")
-            systemProperty("wiki_exporter.metadata.output", file("run/wiki_exporter/").absolutePath)
         }
 
         create("exportClient") {

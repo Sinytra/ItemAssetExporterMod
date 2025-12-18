@@ -35,7 +35,7 @@ public class WikiExporterRenderer implements ExporterModule {
     public void run(Path output) {
         List<Pair<ResourceLocation, Item>> renderable = getRenderableItems();
         if (!renderable.isEmpty()) {
-            
+
             renderable.stream()
                 .map(p -> p.getFirst().getNamespace())
                 .forEach(n -> {
@@ -71,9 +71,9 @@ public class WikiExporterRenderer implements ExporterModule {
 
     private CompletableFuture<?> renderItems(List<Pair<ResourceLocation, Item>> renderable, Path root) {
         int resolution = this.config.resolution();
-        RenderTarget target = new TextureTarget("Wiki Exporter", resolution, resolution, true);
+        RenderTarget target = new TextureTarget(resolution, resolution, true, Minecraft.ON_OSX);
         MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-        SimpleItemRenderer renderer = new SimpleItemRenderer(target, bufferSource, 32);
+        SimpleItemRenderer renderer = new SimpleItemRenderer(bufferSource, 32);
 
         List<CompletableFuture<?>> list = renderable.stream()
             .<CompletableFuture<?>>map(p -> {
@@ -92,32 +92,21 @@ public class WikiExporterRenderer implements ExporterModule {
         if (this.config.png()) {
             exportRenderItem(output, target, renderer, stack);
         }
-
-//        if (this.config.gif()) {
-//            var frames = renderable.getAnimationTicks();
-//            if (frames > 1) {
-//                var other = ImageIO.save(
-//                    RenderableDispatcher.drawFramed(renderable, frames, renderable.getSprites().toList(), RESOLUTION),
-//                    output.resolve(namespace + "/" + fileName + ".gif").toFile()
-//                );
-//                if (cf != null) {
-//                    cf = CompletableFuture.allOf(cf, other);
-//                } else {
-//                    cf = other;
-//                }
-//            }
-//        }
     }
 
     private static void exportRenderItem(Path root, RenderTarget target, SimpleItemRenderer renderer, ItemStack stack) {
         ResourceLocation name = stack.getItem().builtInRegistryHolder().key().location();
 
-        RenderSystem.getDevice()
-            .createCommandEncoder()
-            .clearColorAndDepthTextures(target.getColorTexture(), 0, target.getDepthTexture(), 1.0);
+        RenderSystem.enableBlend();
+        RenderSystem.clear(16640, Minecraft.ON_OSX);
 
+        target.setClearColor(0, 0, 0, 0);
+        target.clear(Minecraft.ON_OSX);
+
+        target.bindWrite(true);
         renderer.renderItem(stack);
+        target.unbindWrite();
 
-        ImageWriter.writeAsPNG(root, name.getPath(), target.getColorTexture(), true);
+        ImageWriter.writeAsPNG(root, name.getPath(), target, true);
     }
 }

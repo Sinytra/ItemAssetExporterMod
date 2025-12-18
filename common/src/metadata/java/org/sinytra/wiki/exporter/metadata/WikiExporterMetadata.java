@@ -21,7 +21,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.Tool;
-import net.minecraft.world.item.enchantment.Enchantable;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
@@ -164,8 +163,7 @@ public class WikiExporterMetadata implements ExporterModule {
             .findFirst()
             .orElse(null)
             : null;
-        Enchantable enchantable = stack.get(DataComponents.ENCHANTABLE);
-        Integer enchantability = enchantable != null ? enchantable.value() : null;
+        Integer enchantability = stack.isEnchantable() ? stack.getItem().getEnchantmentValue() : null;
 
         // Weapons
         Float attackDamage = computeAttributeModifierValue(stack, Attributes.ATTACK_DAMAGE, Item.BASE_ATTACK_DAMAGE_ID);
