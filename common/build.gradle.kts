@@ -5,9 +5,6 @@ plugins {
 
 val mod_id: String by rootProject
 val neo_form_version: String by rootProject
-val parchment_minecraft: String by rootProject
-val parchment_version: String by rootProject
-
 val metadata: SourceSet by sourceSets.creating {
     compileClasspath += sourceSets.main.get().compileClasspath
     runtimeClasspath += sourceSets.main.get().runtimeClasspath
@@ -22,10 +19,6 @@ neoForge {
     val at = file("src/main/resources/META-INF/accesstransformer.cfg")
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
-    }
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
     }
 
     addModdingDependenciesTo(metadata)

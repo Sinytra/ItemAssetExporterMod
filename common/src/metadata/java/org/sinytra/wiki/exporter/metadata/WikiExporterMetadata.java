@@ -122,7 +122,10 @@ public class WikiExporterMetadata implements ExporterModule {
     private static BlockMetadata getBlockMetadata(Block block) {
         BlockState state = block.defaultBlockState();
         ItemStack effectiveTool = ToolTierDictionary.getEffectiveTool(state);
-        String effectiveToolId = effectiveTool.isEmpty() ? null : effectiveTool.getItemHolder().unwrapKey().map(key -> key.identifier().toString()).orElse(null);
+        String effectiveToolId = effectiveTool.isEmpty() ? null : effectiveTool
+                                                                  .getItem()
+                                                                  .builtInRegistryHolder()
+                                                                  .unwrapKey().map(key -> key.identifier().toString()).orElse(null);
 
         Item item = block.asItem();
         if (item == Items.AIR) {
