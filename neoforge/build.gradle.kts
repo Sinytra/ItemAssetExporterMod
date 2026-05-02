@@ -50,5 +50,5 @@ neoForge {
 }
 
 sourceSets.main {
-    resources.srcDir("src/generated/resources") 
+    resources.srcDir("src/generated/resources")
 }
