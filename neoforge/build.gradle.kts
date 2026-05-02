@@ -7,19 +7,12 @@ plugins {
 
 val mod_id: String by rootProject
 val neoforge_version: String by rootProject
-val parchment_minecraft: String by rootProject
-val parchment_version: String by rootProject
-
 neoForge {
     version = neoforge_version
     // Automatically enable neoforge AccessTransformers if the file exists
     val at = project(":common").file("src/main/resources/META-INF/accesstransformer.cfg")
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
-    }
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
     }
     runs {
         configureEach {
