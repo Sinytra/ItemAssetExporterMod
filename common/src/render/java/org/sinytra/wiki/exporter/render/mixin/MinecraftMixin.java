@@ -16,9 +16,9 @@ public class MinecraftMixin {
     @Inject(method = "onGameLoadFinished", at = @At("HEAD"))
     private void onResourceReloadComplete(CallbackInfo ci) {
         Minecraft minecraft = (Minecraft) (Object) this;
-        Screen oldScreen = minecraft.screen;
+        Screen oldScreen = minecraft.gui.screen();
         // Trigger WorldLoader.load to setup item components, necessary for rendering
-        CreateWorldScreen.testWorld(minecraft, () -> minecraft.setScreen(oldScreen));
+        CreateWorldScreen.testWorld(minecraft, () -> minecraft.gui.setScreen(oldScreen));
 
         WikiDataExporter.runModule(WikiRenderModuleFactory.NAME);
     }

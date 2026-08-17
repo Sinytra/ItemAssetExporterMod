@@ -1,6 +1,7 @@
 package org.sinytra.wiki.exporter.render;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -16,12 +17,12 @@ public class ImageWriter {
     private static final Logger LOGGER = LoggerFactory.getLogger(ImageWriter.class);
 
     public static void writeAsPNG(Path root, String filename, GpuTexture texture, boolean flipY) {
-        int i = texture.getFormat().pixelSize() * texture.getWidth(0) * texture.getHeight(0);
+        int i = texture.getFormat().blockSize() * texture.getWidth(0) * texture.getHeight(0);
 
         GpuBuffer gpuBuffer = RenderSystem.getDevice().createBuffer(() -> "Texture output buffer", 9, i);
         CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
         Runnable runnable = () -> {
-            try (GpuBuffer.MappedView mappedView = commandEncoder.mapBuffer(gpuBuffer, true, false)) {
+            try (GpuBufferSlice.MappedView mappedView = gpuBuffer.map(true, false)) {
                 int width = texture.getWidth(0);
                 int height = texture.getHeight(0);
 
@@ -29,7 +30,7 @@ public class ImageWriter {
                     for (int y = 0; y < height; y++) {
                         for (int x = 0; x < width; x++) {
                             int invertY = flipY ? height - 1 - y : y;
-                            int color = mappedView.data().getInt((x + invertY * width) * texture.getFormat().pixelSize());
+                            int color = mappedView.data().getInt((x + invertY * width) * texture.getFormat().blockSize());
                             nativeimage.setPixelABGR(x, y, color);
                         }
                     }

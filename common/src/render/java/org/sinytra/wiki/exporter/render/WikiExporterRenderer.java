@@ -1,14 +1,15 @@
 package org.sinytra.wiki.exporter.render;
 
+import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.sinytra.wiki.exporter.Constants;
@@ -71,9 +72,8 @@ public class WikiExporterRenderer implements ExporterModule {
 
     private CompletableFuture<?> renderItems(List<Pair<Identifier, Item>> renderable, Path root) {
         int resolution = this.config.resolution();
-        RenderTarget target = new TextureTarget("Wiki Exporter", resolution, resolution, true);
-        MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-        SimpleItemRenderer renderer = new SimpleItemRenderer(target, bufferSource, 32);
+        RenderTarget target = new TextureTarget("Wiki Exporter", resolution, resolution, true, GpuFormat.RGBA8_UNORM);
+        SimpleItemRenderer renderer = new SimpleItemRenderer(target, 32);
 
         List<CompletableFuture<?>> list = renderable.stream()
             .<CompletableFuture<?>>map(p -> {
@@ -114,7 +114,7 @@ public class WikiExporterRenderer implements ExporterModule {
 
         RenderSystem.getDevice()
             .createCommandEncoder()
-            .clearColorAndDepthTextures(target.getColorTexture(), 0, target.getDepthTexture(), 1.0);
+            .clearColorAndDepthTextures(target.getColorTexture(), GuiRenderer.CLEAR_COLOR, target.getDepthTexture(), 0.0);
 
         renderer.renderItem(stack);
 

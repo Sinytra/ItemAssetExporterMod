@@ -6,10 +6,9 @@ import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.item.ItemModelResolver;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.item.TrackingItemStackRenderState;
@@ -26,13 +25,11 @@ public class SimpleItemRenderer {
     private final Projection projection;
 
     private final RenderTarget renderTarget;
-    private final MultiBufferSource.BufferSource bufferSource;
     private final int scale;
     private final ItemModelResolver resolver;
 
-    public SimpleItemRenderer(RenderTarget renderTarget, MultiBufferSource.BufferSource bufferSource, int scale) {
+    public SimpleItemRenderer(RenderTarget renderTarget, int scale) {
         this.renderTarget = renderTarget;
-        this.bufferSource = bufferSource;
         this.scale = scale;
         this.resolver = new ItemModelResolver(Minecraft.getInstance().getModelManager());
         this.projection = new Projection();
@@ -57,7 +54,7 @@ public class SimpleItemRenderer {
 
         RenderSystem.setupDefaultState();
         RenderSystem.setProjectionMatrix(this.itemsProjectionMatrixBuffer.getBuffer(projection), ProjectionType.ORTHOGRAPHIC);
-        minecraft.gameRenderer.getLighting().setupFor(lighting);
+        minecraft.gameRenderer.lighting().setupFor(lighting);
 
         PoseStack poseStack = new PoseStack();
         poseStack.pushPose();
@@ -66,10 +63,9 @@ public class SimpleItemRenderer {
 
         ItemStackRenderState state = new ItemStackRenderState();
         this.resolver.updateForTopItem(state, stack, context, null, null, 0);
-        SubmitNodeCollector storage = minecraft.gameRenderer.getSubmitNodeStorage();
+        SubmitNodeStorage storage = new SubmitNodeStorage();
         state.submit(poseStack, storage, PACKED_LIGHT, OverlayTexture.NO_OVERLAY, 0);
-        minecraft.gameRenderer.getFeatureRenderDispatcher().renderAllFeatures();
-        this.bufferSource.endBatch();
+        minecraft.gameRenderer.featureRenderDispatcher().renderAllFeatures(storage);
 
         RenderSystem.outputColorTextureOverride = null;
         RenderSystem.outputDepthTextureOverride = null;
