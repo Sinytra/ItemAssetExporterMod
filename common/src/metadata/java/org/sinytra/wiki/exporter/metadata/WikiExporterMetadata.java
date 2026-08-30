@@ -7,8 +7,8 @@ import com.google.gson.GsonBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -31,16 +31,21 @@ import org.sinytra.wiki.exporter.util.EnumToLowerCaseJsonConverter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 public class WikiExporterMetadata implements ExporterModule {
     private static final Supplier<AttributeSupplier> PLAYER_ATTRIBUTES = Suppliers.memoize(() -> Player.createAttributes().build());
+    private static final String LEGACY_PROPS_PATH = "properties.json";
+    private static final Gson GSON = new GsonBuilder()
+        .setPrettyPrinting()
+        .disableHtmlEscaping()
+        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+        .registerTypeHierarchyAdapter(Enum.class, new EnumToLowerCaseJsonConverter())
+        .create();
 
     private final Set<String> namespaces;
 
@@ -54,20 +59,13 @@ public class WikiExporterMetadata implements ExporterModule {
             return;
         }
 
-        Map<String, Object> metadata = new HashMap<>();
-        for (Map.Entry<ResourceKey<Block>, Block> entry : BuiltInRegistries.BLOCK.entrySet()) {
-            Identifier name = entry.getKey().identifier();
-            Block block = entry.getValue();
-            if (!this.namespaces.contains(name.getNamespace())) {
-                continue;
-            }
+        boolean namespaced = Boolean.getBoolean("wiki_exporter.module.%s.namespaced".formatted(WikiMetadataModuleFactory.NAME));
+        String itemPropsPath = Objects.requireNonNullElse(
+            System.getProperty("wiki_exporter.module.%s.output.items".formatted(WikiMetadataModuleFactory.NAME)),
+            LEGACY_PROPS_PATH
+        );
 
-            BlockMetadata data = getBlockMetadata(block);
-            if (data == null) {
-                continue;
-            }
-            metadata.put(name.toString(), data);
-        }
+        Map<String, Map<String, Object>> metadata = new HashMap<>();
 
         for (Map.Entry<ResourceKey<Item>, Item> entry : BuiltInRegistries.ITEM.entrySet()) {
             Identifier name = entry.getKey().identifier();
@@ -80,19 +78,46 @@ public class WikiExporterMetadata implements ExporterModule {
             if (data == null) {
                 continue;
             }
-            metadata.put(name.toString(), data);
+            putMetadata(metadata, name, data);
         }
 
-        Gson gson = new GsonBuilder()
-            .setPrettyPrinting()
-            .disableHtmlEscaping()
-            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-            .registerTypeHierarchyAdapter(Enum.class, new EnumToLowerCaseJsonConverter())
-            .create();
+        for (Map.Entry<ResourceKey<Block>, Block> entry : BuiltInRegistries.BLOCK.entrySet()) {
+            Identifier name = entry.getKey().identifier();
+            Block block = entry.getValue();
+            if (!this.namespaces.contains(name.getNamespace())) {
+                continue;
+            }
 
-        String content = gson.toJson(metadata);
+            BlockMetadata data = getBlockMetadata(block);
+            if (data == null) {
+                continue;
+            }
+            putMetadata(metadata, name, data);
+        }
 
-        Files.writeString(output.resolve("properties.json"), content, StandardCharsets.UTF_8);
+        if (namespaced) {
+            for (Entry<String, Map<String, Object>> entry : metadata.entrySet()) {
+                String namespace = entry.getKey();
+                String content = GSON.toJson(entry.getValue());
+
+                Path outputPath = output.resolve(namespace).resolve(itemPropsPath);
+                Files.createDirectories(outputPath.getParent());
+                Files.writeString(outputPath, content, StandardCharsets.UTF_8);
+            }
+        } else {
+            Map<String, Object> flat = new TreeMap<>();
+            metadata.values().forEach(flat::putAll);
+            String content = GSON.toJson(flat);
+
+            Path outputPath = output.resolve(itemPropsPath);
+            Files.createDirectories(outputPath.getParent());
+            Files.writeString(outputPath, content, StandardCharsets.UTF_8);
+        }
+    }
+
+    private static void putMetadata(Map<String, Map<String, Object>> map, Identifier id, Object value) {
+        map.computeIfAbsent(id.getNamespace(), n -> new TreeMap<>())
+            .put(id.toString(), value);
     }
 
     record BlockMetadata(
@@ -123,9 +148,9 @@ public class WikiExporterMetadata implements ExporterModule {
         BlockState state = block.defaultBlockState();
         ItemStack effectiveTool = ToolTierDictionary.getEffectiveTool(state);
         String effectiveToolId = effectiveTool.isEmpty() ? null : effectiveTool
-                                                                  .getItem()
-                                                                  .builtInRegistryHolder()
-                                                                  .unwrapKey().map(key -> key.identifier().toString()).orElse(null);
+            .getItem()
+            .builtInRegistryHolder()
+            .unwrapKey().map(key -> key.identifier().toString()).orElse(null);
 
         Item item = block.asItem();
         if (item == Items.AIR) {
