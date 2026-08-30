@@ -37,19 +37,20 @@ public class WikiExporterRenderer implements ExporterModule {
     public void run(Path output) {
         List<Pair<Identifier, Item>> renderable = getRenderableItems();
         if (!renderable.isEmpty()) {
+            String subDir = System.getProperty("wiki_exporter.module.%s.output.group.items".formatted(WikiRenderModuleFactory.NAME));
             
             renderable.stream()
                 .map(p -> p.getFirst().getNamespace())
                 .forEach(n -> {
                     try {
-                        Files.createDirectories(output.resolve(n));
+                        Files.createDirectories(getOutputDir(output, n, subDir));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 });
 
             Constants.LOG.info("Rendering {} items", renderable.size());
-            renderItems(renderable, output).join();
+            renderItems(renderable, output, subDir).join();
         }
     }
 
@@ -71,36 +72,32 @@ public class WikiExporterRenderer implements ExporterModule {
         return list;
     }
 
-    private CompletableFuture<?> renderItems(List<Pair<Identifier, Item>> renderable, Path root) {
+    private CompletableFuture<?> renderItems(List<Pair<Identifier, Item>> renderable, Path root, String subDir) {
         int resolution = this.config.resolution();
         RenderTarget target = new TextureTarget("Wiki Exporter", resolution, resolution, true, GpuFormat.RGBA8_UNORM);
         SimpleItemRenderer renderer = new SimpleItemRenderer(target, 32);
-        String subDir = System.getProperty("wiki_exporter.module.%s.group.items".formatted(WikiRenderModuleFactory.NAME));
 
         List<CompletableFuture<?>> list = renderable.stream()
             .<CompletableFuture<?>>map(p -> {
                 Identifier location = p.getFirst();
                 ItemStack stack = new ItemStack(p.getSecond());
-                Path output = root.resolve(location.getNamespace());
+                Path output = getOutputDir(root, location.getNamespace(), subDir);
 
-                return Minecraft.getInstance().submit(() -> scheduleRender(stack, target, renderer, output, subDir));
+                return Minecraft.getInstance().submit(() -> scheduleRender(stack, target, renderer, output));
             })
             .toList();
 
         return CompletableFuture.allOf(list.toArray(CompletableFuture[]::new));
     }
 
-    private void scheduleRender(ItemStack stack, RenderTarget target, SimpleItemRenderer renderer, Path output, @Nullable String subDir) {
+    private void scheduleRender(ItemStack stack, RenderTarget target, SimpleItemRenderer renderer, Path output) {
         if (this.config.png()) {
-            exportRenderItem(output, subDir, target, renderer, stack);
+            exportRenderItem(output, target, renderer, stack);
         }
     }
 
-    private static void exportRenderItem(Path root, String subDir, RenderTarget target, SimpleItemRenderer renderer, ItemStack stack) {
+    private static void exportRenderItem(Path root, RenderTarget target, SimpleItemRenderer renderer, ItemStack stack) {
         Identifier name = stack.getItem().builtInRegistryHolder().key().identifier();
-        if (subDir != null) {
-            name = name.withPrefix(subDir + "/");
-        }
 
         RenderSystem.getDevice()
             .createCommandEncoder()
@@ -109,5 +106,10 @@ public class WikiExporterRenderer implements ExporterModule {
         renderer.renderItem(stack);
 
         ImageWriter.writeAsPNG(root, name.getPath(), target.getColorTexture(), true);
+    }
+
+    private static Path getOutputDir(Path root, String namespace, @Nullable String group) {
+        Path base = root.resolve(namespace);
+        return group != null ? base.resolve(group) : base;
     }
 }
