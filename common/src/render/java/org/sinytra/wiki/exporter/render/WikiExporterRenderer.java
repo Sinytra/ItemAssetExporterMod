@@ -12,6 +12,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 import org.sinytra.wiki.exporter.Constants;
 import org.sinytra.wiki.exporter.platform.services.ExporterModule;
 
@@ -74,6 +75,7 @@ public class WikiExporterRenderer implements ExporterModule {
         int resolution = this.config.resolution();
         RenderTarget target = new TextureTarget("Wiki Exporter", resolution, resolution, true, GpuFormat.RGBA8_UNORM);
         SimpleItemRenderer renderer = new SimpleItemRenderer(target, 32);
+        String subDir = System.getProperty("wiki_exporter.module.%s.group.items".formatted(WikiRenderModuleFactory.NAME));
 
         List<CompletableFuture<?>> list = renderable.stream()
             .<CompletableFuture<?>>map(p -> {
@@ -81,36 +83,24 @@ public class WikiExporterRenderer implements ExporterModule {
                 ItemStack stack = new ItemStack(p.getSecond());
                 Path output = root.resolve(location.getNamespace());
 
-                return Minecraft.getInstance().submit(() -> scheduleRender(stack, target, renderer, output));
+                return Minecraft.getInstance().submit(() -> scheduleRender(stack, target, renderer, output, subDir));
             })
             .toList();
 
         return CompletableFuture.allOf(list.toArray(CompletableFuture[]::new));
     }
 
-    private void scheduleRender(ItemStack stack, RenderTarget target, SimpleItemRenderer renderer, Path output) {
+    private void scheduleRender(ItemStack stack, RenderTarget target, SimpleItemRenderer renderer, Path output, @Nullable String subDir) {
         if (this.config.png()) {
-            exportRenderItem(output, target, renderer, stack);
+            exportRenderItem(output, subDir, target, renderer, stack);
         }
-
-//        if (this.config.gif()) {
-//            var frames = renderable.getAnimationTicks();
-//            if (frames > 1) {
-//                var other = ImageIO.save(
-//                    RenderableDispatcher.drawFramed(renderable, frames, renderable.getSprites().toList(), RESOLUTION),
-//                    output.resolve(namespace + "/" + fileName + ".gif").toFile()
-//                );
-//                if (cf != null) {
-//                    cf = CompletableFuture.allOf(cf, other);
-//                } else {
-//                    cf = other;
-//                }
-//            }
-//        }
     }
 
-    private static void exportRenderItem(Path root, RenderTarget target, SimpleItemRenderer renderer, ItemStack stack) {
+    private static void exportRenderItem(Path root, String subDir, RenderTarget target, SimpleItemRenderer renderer, ItemStack stack) {
         Identifier name = stack.getItem().builtInRegistryHolder().key().identifier();
+        if (subDir != null) {
+            name = name.withPrefix(subDir + "/");
+        }
 
         RenderSystem.getDevice()
             .createCommandEncoder()
